@@ -1,22 +1,18 @@
-name: "code quality PR check"
+name: "Build"
 
 on:
-  pull_request:
-    paths:
-      - "src/**"
-      - "package-lock.json"
-      - "tests/**"
-      - "dist/**"
-      - "tsconfig.json"
-      - .github/workflows/code-quality-pr-check.yml
+  push:
     branches: [main]
+  pull_request:
+  merge_group:
+    branches: ["**"]
 
 jobs:
   build:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v2
-      - uses: actions/setup-node@v2
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
         with:
           node-version: "16"
           cache: "npm"
@@ -38,8 +34,8 @@ jobs:
         os: ["ubuntu-latest", "windows-latest", "macos-latest"]
     runs-on: ${{ matrix.os }}
     steps:
-      - uses: actions/checkout@v2
-      - uses: actions/setup-node@v2
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
         with:
           node-version: "16"
           cache: "npm"
@@ -61,12 +57,12 @@ jobs:
     name: OpenTelemetry Export Trace
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v2
+      - uses: actions/checkout@v4
       - name: export trace
         uses: ./
         with:
-          otlpEndpoint: "TEST"
-          otlpHeaders: "TEST"
+          otlpEndpoint: UNUSED
+          otlpHeaders: UNUSED
           githubToken: ${{ secrets.GITHUB_TOKEN }}
         env:
           OTEL_CONSOLE_ONLY: "true"

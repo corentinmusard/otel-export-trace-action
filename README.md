@@ -1,10 +1,14 @@
-# Open Telemetry Trace Exporter Action
+# Open Telemetry CI/CD Action
 
-This action will export GitHub Workflow telemetry data using OTLP to a configurable endpoint.
+This action export GitHub Workflow telemetry data using OTLP to a configurable endpoint.
+
+This is a fork of [inception-health/otel-export-trace-action](https://github.com/inception-health/otel-export-trace-action) with the goal of maintaining the action and adding more features.
 
 ## Usage
 
-### On workflow_run Event
+### On workflow_run event (recommended)
+
+`my-workflow` should be the name of the workflow you want to export.
 
 ```yaml
 name: OpenTelemetry Export Trace
@@ -28,7 +32,7 @@ jobs:
           runId: ${{ github.event.workflow_run.id }}
 ```
 
-### On Current Workflow
+### Inside an existing workflow
 
 ```yaml
 name: OpenTelemetry Export Trace
@@ -54,7 +58,30 @@ jobs:
           githubToken: ${{ secrets.GITHUB_TOKEN }}
 ```
 
-### With Junit Tracing
+### Action Inputs
+
+| name            | description                                                                                                                                           | required | default                               |
+| --------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------- | -------- | ------------------------------------- |
+| otlpEndpoint    | The destination endpoint to export OpenTelemetry traces to. It supports `https://` and `grpc://` endpoints.                                           | true     |                                       |
+| otlpHeaders     | Network Headers for the destination endpoint to export OpenTelemetry traces to. Ex. `x-honeycomb-team=YOUR_API_KEY,x-honeycomb-dataset=YOUR_DATASET`. | true     |                                       |
+| otelServiceName | OpenTelemetry service name                                                                                                                            | false    | `<The name of the exported workflow>` |
+| githubToken     | The repository token with Workflow permissions. Not required for public repos                                                                         | false    |                                       |
+| runId           | Workflow Run ID to Export                                                                                                                             | false    | env.GITHUB_RUN_ID                     |
+
+### Action Outputs
+
+| name    | description                               |
+| ------- | ----------------------------------------- |
+| traceId | The OpenTelemetry Trace ID for this Trace |
+
+## Honeycomb Example Trace
+
+![HoneyComb Example](./docs/honeycomb-example.png)
+
+_with JUnit traces_
+![HoneyComb Junit Example](./docs/honeycomb-junit-example.png)
+
+## With Junit Tracing
 
 Combined with [OpenTelemetry Upload Trace Artifact](https://github.com/marketplace/actions/opentelemetry-upload-trace-artifact) this action will Download the OTLP Trace Log Artifact uploaded from the Workflow Run and export it.
 
@@ -110,22 +137,6 @@ jobs:
           githubToken: ${{ secrets.GITHUB_TOKEN }}
           runId: ${{ github.event.workflow_run.id }}
 ```
-
-### Action Inputs
-
-| name            | description                                                                                                                                          | required | default           |
-| --------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------- | -------- | ----------------- |
-| otlpEndpoint    | The destination endpoint to export OpenTelemetry traces to                                                                                           | true     |                   |
-| otlpHeaders     | Network Headers for the destination endpoint to export OpenTelemetry traces to. Ex. `x-honeycomb-team=YOUR_API_KEY,x-honeycomb-dataset=YOUR_DATASET` | true     |                   |
-| otelServiceName | OpenTelemetry service name                                                                                                                           | false    |                   |
-| githubToken     | The repository token with Workflow permissions. Not required for public repos                                                                        | false    |                   |
-| runId           | Workflow Run ID to Export                                                                                                                            | false    | env.GITHUB_RUN_ID |
-
-### Action Outputs
-
-| name    | description                               |
-| ------- | ----------------------------------------- |
-| traceId | The OpenTelemetry Trace ID for this Trace |
 
 ## Trace Unique Fields
 
@@ -194,9 +205,12 @@ jobs:
 | github.job.step.started_at              | string  | Github Step Run started_at                            |
 | github.job.step.completed_at            | string  | Github Step Run completed_at                          |
 
-## Honeycomb Example Trace
+## Development setup
 
-![HoneyComb Example](./docs/honeycomb-example.png)
-
-_with JUnit traces_
-![HoneyComb Junit Example](./docs/honeycomb-junit-example.png)
+```sh
+# temporary fix
+export NODE_OPTIONS=--openssl-legacy-provider
+npm run prepare
+npm i
+npm run dev
+```

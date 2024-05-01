@@ -1,0 +1,21 @@
+name: OpenTelemetry Export Traces
+
+on:
+  workflow_run:
+    workflows:
+      - "Build"
+    types: [completed]
+
+jobs:
+  otel-export-traces:
+    name: OpenTelemetry Export Traces
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Export traces
+        uses: ./
+        with:
+          otlpEndpoint: ${{ secrets.OTLP_ENDPOINT }}
+          otlpHeaders: ${{ secrets.OTLP_HEADERS }}
+          githubToken: ${{ secrets.GITHUB_TOKEN }}
+          runId: ${{ github.event.workflow_run.id }}
