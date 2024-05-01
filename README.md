@@ -213,4 +213,5 @@ export NODE_OPTIONS=--openssl-legacy-provider
 npm run prepare
 npm i
 npm run dev
+npm run test
 ```
