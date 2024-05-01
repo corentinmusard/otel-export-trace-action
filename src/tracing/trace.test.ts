@@ -106,4 +106,14 @@ describe("createTracerProvider", () => {
     const spanProcessor = subject.getActiveSpanProcessor();
     expect(spanProcessor).toBeDefined();
   });
+
+  it("supports https", () => {
+    subject = createTracerProvider(
+      "https://localhost",
+      "test=foo",
+      mockWorkflowRunJobs
+    );
+    const spanProcessor = subject.getActiveSpanProcessor();
+    expect(spanProcessor).toBeDefined();
+  });
 });
