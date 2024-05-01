@@ -3,7 +3,7 @@ name: OpenTelemetry Export Traces
 on:
   workflow_run:
     workflows:
-      - "fixme"
+      - "Build"
     types: [completed]
 
 jobs:

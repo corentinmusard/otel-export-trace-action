@@ -54,11 +54,11 @@ jobs:
   otel-export-trace:
     needs: [tests, build]
     if: always()
-    name: OpenTelemetry Export Trace
+    name: OpenTelemetry Export Traces
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-      - name: export trace
+      - name: Export traces
         uses: ./
         with:
           otlpEndpoint: ${{ secrets.OTLP_ENDPOINT }}
