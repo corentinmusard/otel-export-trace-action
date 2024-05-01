@@ -61,8 +61,6 @@ jobs:
       - name: export trace
         uses: ./
         with:
-          otlpEndpoint: UNUSED
-          otlpHeaders: UNUSED
+          otlpEndpoint: ${{ secrets.OTLP_ENDPOINT }}
+          otlpHeaders: ${{ secrets.OTLP_HEADERS }}
           githubToken: ${{ secrets.GITHUB_TOKEN }}
-        env:
-          OTEL_CONSOLE_ONLY: "true"
