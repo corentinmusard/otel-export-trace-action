@@ -11,7 +11,7 @@ This is a fork of [inception-health/otel-export-trace-action](https://github.com
 `my-workflow` should be the name of the workflow you want to export.
 
 ```yaml
-name: OpenTelemetry Export Trace
+name: OpenTelemetry Export Traces
 
 on:
   workflow_run:
