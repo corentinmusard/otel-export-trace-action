@@ -3,15 +3,15 @@
 [![Unit Tests][ci-img]][ci]
 ![GitHub License][license-img]
 
-This action export GitHub Workflow data to any endpoint compatible with OpenTelemetry.
+This action exports Github CI/CD workflows to any endpoint compatible with OpenTelemetry.
 
-This is a fork of [otel-export-trace-action](https://github.com/inception-health/otel-export-trace-action) with the goal of maintaining the action and adding more features.
+This is a fork of [otel-export-trace-action](hhttps://github.com/inception-health/otel-export-trace-action) with more features and better support.
 
 ![Example](./docs/honeycomb-example.png)
 
 ## Usage
 
-We provide sample code for popular platforms. If you feel one is missing feel free to open an issue.
+We provide sample code for popular platforms. If you feel one is missing, please open an issue.
 
 | Code Sample                 | File                                                                                                          |
 | --------------------------- | ------------------------------------------------------------------------------------------------------------- |
@@ -33,7 +33,7 @@ on:
     types: [completed]
 
 jobs:
-  otel-export-traces:
+  otel-cicd-actions:
     runs-on: ubuntu-latest
     steps:
       - uses: corentinmusard/otel-cicd-action@v1
@@ -50,7 +50,7 @@ jobs:
 jobs:
   build:
     # ... existing code
-  otel-export-trace:
+  otel-cicd-action:
     if: always()
     name: OpenTelemetry Export Trace
     runs-on: ubuntu-latest
@@ -120,7 +120,7 @@ jobs:
           githubToken: ${{ secrets.GITHUB_TOKEN }}
 ```
 
-**otel-export-trace.yml**
+**otel-cicd.yml**
 
 ```yaml
 name: OpenTelemetry Export Traces
@@ -131,11 +131,11 @@ on:
     types: [completed]
 
 jobs:
-  otel-export-trace:
+  otel-cicd-action:
     runs-on: ubuntu-latest
     steps:
       - name: Export Workflow Traces
-        uses: inception-health/otel-export-trace-action@latest
+        uses: corentinmusard/otel-cicd-action@v1
         with:
           otlpEndpoint: grpc://api.honeycomb.io:443/
           otlpHeaders: ${{ secrets.OTLP_HEADERS }}

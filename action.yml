@@ -1,6 +1,6 @@
-name: OpenTelemetry Export Trace
-description: Exports Workflow Run Telemetry Trace over OLTP
-author: Inception Health
+name: Open Telemetry CI/CD Action
+description: Export CI/CD workflows to any endpoint compatible with OpenTelemetry
+author: Corentin Musard
 
 runs:
   using: node20
@@ -28,5 +28,5 @@ outputs:
     description: The OpenTelemetry Trace ID for this Trace
 
 branding:
-  icon: activity
-  color: blue
+  icon: bar-chart-2
+  color: green

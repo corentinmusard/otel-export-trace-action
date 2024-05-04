@@ -27,7 +27,7 @@ export async function traceWorkflowRunJobs({
   provider,
   workflowRunJobs,
 }: TraceWorkflowRunJobsParams): Promise<SpanContext> {
-  const tracer = provider.getTracer("otel-export-trace");
+  const tracer = provider.getTracer("otel-cicd-action");
 
   const startTime = new Date(
     workflowRunJobs.workflowRun.run_started_at ||

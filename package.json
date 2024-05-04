@@ -1,8 +1,8 @@
 {
   "private": true,
-  "name": "otel-export-trace",
-  "version": "1.8.0",
-  "description": "Github Action to export Open Telemetry traces for Workflow runs",
+  "name": "otel-cicd-action",
+  "version": "1.9.0",
+  "description": "Github Action that export CI/CD workflows to any endpoint compatible with OpenTelemetry",
   "main": "lib/index.js",
   "scripts": {
     "prepare": "husky install",
@@ -18,7 +18,7 @@
     "test:ci": "cross-env NODE_ENV=test jest --collect-coverage -ci"
   },
   "keywords": [],
-  "author": "",
+  "author": "Corentin Musard <corentin.musard+dev@gmail.com>",
   "license": "MIT",
   "dependencies": {
     "@actions/artifact": "^0.6.1",

@@ -327,7 +327,7 @@ const core = __importStar(__nccwpck_require__(42186));
 const step_1 = __nccwpck_require__(59431);
 async function traceWorkflowRunJobs({ provider, workflowRunJobs, }) {
     var _a, _b, _c, _d, _e, _f, _g, _h, _j, _k, _l, _m, _o, _p, _q, _r, _s, _t, _u;
-    const tracer = provider.getTracer("otel-export-trace");
+    const tracer = provider.getTracer("otel-cicd-action");
     const startTime = new Date(workflowRunJobs.workflowRun.run_started_at ||
         workflowRunJobs.workflowRun.created_at);
     let headRef = undefined;

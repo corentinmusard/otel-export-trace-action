@@ -49,7 +49,7 @@ jobs:
           path: "junit.xml"
           type: "junit"
           githubToken: ${{ secrets.GITHUB_TOKEN }}
-  otel-export-traces:
+  otel-cicd:
     needs: [tests, build]
     if: always()
     runs-on: ubuntu-latest
