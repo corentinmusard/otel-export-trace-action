@@ -7,6 +7,8 @@ This action export GitHub Workflow data to any endpoint compatible with OpenTele
 
 This is a fork of [otel-export-trace-action](https://github.com/inception-health/otel-export-trace-action) with the goal of maintaining the action and adding more features.
 
+![Example](./docs/honeycomb-example.png)
+
 ## Usage
 
 We provide sample code for popular platforms. If you feel one is missing feel free to open an issue.
