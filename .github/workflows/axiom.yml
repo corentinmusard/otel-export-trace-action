@@ -1,0 +1,23 @@
+name: Export workflow to Axiom
+
+on:
+  workflow_run:
+    workflows:
+      # The name of the workflow(s) that triggers the export
+      - "Build"
+    types: [completed]
+
+jobs:
+  otel-export-axiom:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Export workflow to Axiom
+        uses: ./
+        with:
+          otlpEndpoint: https://api.axiom.co/v1/traces
+          # Example value for AXIOM_OTLP_HEADERS:
+          # Authorization=Bearer YOUR_API_TOKEN,X-Axiom-Dataset=YOUR_DATASET
+          otlpHeaders: ${{ secrets.AXIOM_OTLP_HEADERS }}
+          githubToken: ${{ secrets.GITHUB_TOKEN }}
+          runId: ${{ github.event.workflow_run.id }}

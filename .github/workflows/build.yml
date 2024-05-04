@@ -49,14 +49,13 @@ jobs:
           path: "junit.xml"
           type: "junit"
           githubToken: ${{ secrets.GITHUB_TOKEN }}
-  otel-export-trace:
+  otel-export-traces:
     needs: [tests, build]
     if: always()
-    name: OpenTelemetry Export Traces
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-      - name: Export traces
+      - name: Export workflow
         uses: ./
         with:
           otlpEndpoint: ${{ secrets.OTLP_ENDPOINT }}

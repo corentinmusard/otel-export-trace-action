@@ -1,0 +1,23 @@
+name: Export workflow to New Relic
+
+on:
+  workflow_run:
+    workflows:
+      # The name of the workflow(s) that triggers the export
+      - "Build"
+    types: [completed]
+
+jobs:
+  otel-export-newrelic:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Export workflow to New Relic
+        uses: ./
+        with:
+          otlpEndpoint: grpc://otlp.eu01.nr-data.net
+          # Example value for NEWRELIC_OTLP_HEADERS:
+          # api-key=YOUR_NEWRELIC_API_KEY
+          otlpHeaders: ${{ secrets.NEWRELIC_OTLP_HEADERS }}
+          githubToken: ${{ secrets.GITHUB_TOKEN }}
+          runId: ${{ github.event.workflow_run.id }}

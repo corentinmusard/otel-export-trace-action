@@ -1,30 +1,40 @@
 # Open Telemetry CI/CD Action
 
-This action export GitHub Workflow telemetry data using OTLP to a configurable endpoint.
+[![Unit Tests][ci-img]][ci]
+![GitHub License][license-img]
 
-This is a fork of [inception-health/otel-export-trace-action](https://github.com/inception-health/otel-export-trace-action) with the goal of maintaining the action and adding more features.
+This action export GitHub Workflow data to any endpoint compatible with OpenTelemetry.
+
+This is a fork of [otel-export-trace-action](https://github.com/inception-health/otel-export-trace-action) with the goal of maintaining the action and adding more features.
 
 ## Usage
 
+We provide sample code for popular platforms. If you feel one is missing feel free to open an issue.
+
+| Code Sample                 | File                                                                                                          |
+| --------------------------- | ------------------------------------------------------------------------------------------------------------- |
+| Inside an existing workflow | [build.yml](https://github.com/corentinmusard/otel-cicd-action/tree/main/.github/workflows/build.yml)         |
+| Axiom                       | [axiom.yml](https://github.com/corentinmusard/otel-cicd-action/tree/main/.github/workflows/axiom.yml)         |
+| New Relic                   | [newrelic.yml](https://github.com/corentinmusard/otel-cicd-action/tree/main/.github/workflows/newrelic.yml)   |
+| Honeycomb                   | [honeycomb.yml](https://github.com/corentinmusard/otel-cicd-action/tree/main/.github/workflows/honeycomb.yml) |
+| Jaeger                      | WIP                                                                                                           |
+| Grafana                     | WIP                                                                                                           |
+
 ### On workflow_run event (recommended)
 
-`my-workflow` should be the name of the workflow you want to export.
-
 ```yaml
-name: OpenTelemetry Export Traces
-
 on:
   workflow_run:
-    workflows: [my-workflow]
+    workflows:
+      # The name of the workflow(s) that triggers the export
+      - "Build"
     types: [completed]
 
 jobs:
-  otel-export-trace:
-    name: OpenTelemetry Export Trace
+  otel-export-traces:
     runs-on: ubuntu-latest
     steps:
-      - name: Export Workflow Trace
-        uses: inception-health/otel-export-trace-action@latest
+      - uses: corentinmusard/otel-cicd-action@v1
         with:
           otlpEndpoint: grpc://api.honeycomb.io:443/
           otlpHeaders: ${{ secrets.OTLP_HEADERS }}
@@ -35,23 +45,17 @@ jobs:
 ### Inside an existing workflow
 
 ```yaml
-name: OpenTelemetry Export Trace
-
-on:
-  push:
-    branch: [main]
-
 jobs:
   build:
-    # Run build steps
+    # ... existing code
   otel-export-trace:
     if: always()
     name: OpenTelemetry Export Trace
     runs-on: ubuntu-latest
-    needs: [build] # must run when all jobs are complete
+    needs: [build] # must run when all jobs are completed
     steps:
-      - name: Export Workflow Trace
-        uses: inception-health/otel-export-trace-action@latest
+      - name: Export workflow
+        uses: corentinmusard/otel-cicd-action@v1
         with:
           otlpEndpoint: grpc://api.honeycomb.io:443/
           otlpHeaders: ${{ secrets.OTLP_HEADERS }}
@@ -60,13 +64,13 @@ jobs:
 
 ### Action Inputs
 
-| name            | description                                                                                                                                           | required | default                               |
-| --------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------- | -------- | ------------------------------------- |
-| otlpEndpoint    | The destination endpoint to export OpenTelemetry traces to. It supports `https://` and `grpc://` endpoints.                                           | true     |                                       |
-| otlpHeaders     | Network Headers for the destination endpoint to export OpenTelemetry traces to. Ex. `x-honeycomb-team=YOUR_API_KEY,x-honeycomb-dataset=YOUR_DATASET`. | true     |                                       |
-| otelServiceName | OpenTelemetry service name                                                                                                                            | false    | `<The name of the exported workflow>` |
-| githubToken     | The repository token with Workflow permissions. Not required for public repos                                                                         | false    |                                       |
-| runId           | Workflow Run ID to Export                                                                                                                             | false    | env.GITHUB_RUN_ID                     |
+| name            | description                                                                                                 | required | default                               | example                                                          |
+| --------------- | ----------------------------------------------------------------------------------------------------------- | -------- | ------------------------------------- | ---------------------------------------------------------------- |
+| otlpEndpoint    | The destination endpoint to export OpenTelemetry traces to. It supports `https://` and `grpc://` endpoints. | true     |                                       | `https://api.axiom.co/v1/traces`                                 |
+| otlpHeaders     | Headers to add to the OpenTelemetry exporter .                                                              | true     |                                       | `x-honeycomb-team=YOUR_API_KEY,x-honeycomb-dataset=YOUR_DATASET` |
+| otelServiceName | OpenTelemetry service name                                                                                  | false    | `<The name of the exported workflow>` | `Build CI`                                                       |
+| githubToken     | The repository token with Workflow permissions. Required for private repos                                  | false    |                                       | `${{ secrets.GITHUB_TOKEN }}`                                    |
+| runId           | Workflow Run ID to Export                                                                                   | false    | env.GITHUB_RUN_ID                     | `${{ github.event.workflow_run.id }}`                            |
 
 ### Action Outputs
 
@@ -117,7 +121,7 @@ jobs:
 **otel-export-trace.yml**
 
 ```yaml
-name: OpenTelemetry Export Trace
+name: OpenTelemetry Export Traces
 
 on:
   workflow_run:
@@ -126,10 +130,9 @@ on:
 
 jobs:
   otel-export-trace:
-    name: OpenTelemetry Export Trace
     runs-on: ubuntu-latest
     steps:
-      - name: Export Workflow Trace
+      - name: Export Workflow Traces
         uses: inception-health/otel-export-trace-action@latest
         with:
           otlpEndpoint: grpc://api.honeycomb.io:443/
@@ -205,13 +208,6 @@ jobs:
 | github.job.step.started_at              | string  | Github Step Run started_at                            |
 | github.job.step.completed_at            | string  | Github Step Run completed_at                          |
 
-## Development setup
-
-```sh
-# temporary fix
-export NODE_OPTIONS=--openssl-legacy-provider
-npm run prepare
-npm i
-npm run dev
-npm run test
-```
+[ci-img]: https://github.com/corentinmusard/otel-cicd-action/actions/workflows/build.yml/badge.svg?branch=main
+[ci]: https://github.com/corentinmusard/otel-cicd-action/actions/workflows/build.yml?query=branch%3Amain
+[license-img]: https://img.shields.io/github/license/corentinmusard/otel-cicd-action

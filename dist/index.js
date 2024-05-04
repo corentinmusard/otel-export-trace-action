@@ -23333,7 +23333,7 @@ const types_1 = __nccwpck_require__(51268);
 function onInit(collector, config) {
     collector.grpcQueue = [];
     const credentials = config.credentials || grpc.credentials.createInsecure();
-    const includeDirs = [__nccwpck_require__.ab + "protos"];
+    const includeDirs = [__nccwpck_require__.ab + "protos1"];
     protoLoader
         .load(collector.getServiceProtoPath(), {
         keepCase: false,
@@ -32708,10 +32708,10 @@ function getExportRequestProto() {
 }
 exports.getExportRequestProto = getExportRequestProto;
 function onInit(collector, _config) {
-    const dir = __nccwpck_require__.ab + "protos1";
+    const dir = __nccwpck_require__.ab + "protos";
     const root = new protobufjs.Root();
     root.resolvePath = function (origin, target) {
-        return __nccwpck_require__.ab + "protos1/" + target;
+        return __nccwpck_require__.ab + "protos/" + target;
     };
     if (collector.getServiceClientType() === types_1.ServiceClientType.SPANS) {
         const proto = root.loadSync([
