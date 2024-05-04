@@ -104,7 +104,7 @@ async function getWorkflowRunArtifactMap(
       );
       const next: WorkflowArtifactMap = { ...result };
       /* istanbul ignore next */
-      if (match?.groups?.jobName && match?.groups?.stepName) {
+      if (match?.groups?.["jobName"] && match?.groups?.["stepName"]) {
         const { jobName, stepName } = match.groups;
         core.debug(`Found Artifact for Job<${jobName}> Step<${stepName}>`);
         if (!(jobName in next)) {
@@ -154,7 +154,7 @@ async function getSelfArtifactMap(): Promise<WorkflowArtifactMap> {
     (result, { artifactName, downloadPath }) => {
       const next: WorkflowArtifactMap = { ...result };
       const match = artifactName.match(/\{(?<jobName>.*)\}\{(?<stepName>.*)\}/);
-      if (match?.groups?.jobName && match?.groups?.stepName) {
+      if (match?.groups?.["jobName"] && match?.groups?.["stepName"]) {
         const { jobName, stepName } = match.groups;
         core.debug(`Found Artifact for Job<${jobName}> Step<${stepName}>`);
         if (!(jobName in next)) {

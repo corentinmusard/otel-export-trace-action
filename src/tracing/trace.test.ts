@@ -40,7 +40,7 @@ describe("createTracerProvider", () => {
     });
 
     it("has service.name resource as workflow id", () => {
-      mockWorkflowRunJobs.workflowRun.name = undefined;
+      mockWorkflowRunJobs.workflowRun.name = null;
       subject = createTracerProvider(
         "localhost",
         "test=foo",

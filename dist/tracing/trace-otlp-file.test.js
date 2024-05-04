@@ -76,10 +76,10 @@ describe("traceJunitArtifact", () => {
             expect(s.endTime[1]).toBeGreaterThanOrEqual(s.startTime[1]);
             expect(s.status).toBeDefined();
             if (s.status.code === api.SpanStatusCode.ERROR) {
-                expect(s.attributes.error).toBeTruthy();
+                expect(s.attributes["error"]).toBeTruthy();
             }
             else {
-                expect(s.attributes.error).toBeFalsy();
+                expect(s.attributes["error"]).toBeFalsy();
             }
         });
     });
@@ -105,10 +105,10 @@ describe("traceJunitArtifact", () => {
             expect(s.endTime[1]).toBeGreaterThanOrEqual(s.startTime[1]);
             expect(s.status).toBeDefined();
             if (s.status.code === api.SpanStatusCode.ERROR) {
-                expect(s.attributes.error).toBeTruthy();
+                expect(s.attributes["error"]).toBeTruthy();
             }
             else {
-                expect(s.attributes.error).toBeFalsy();
+                expect(s.attributes["error"]).toBeFalsy();
             }
         });
     });
@@ -134,10 +134,10 @@ describe("traceJunitArtifact", () => {
             expect(s.endTime[1]).toBeGreaterThanOrEqual(s.startTime[1]);
             expect(s.status).toBeDefined();
             if (s.status.code === api.SpanStatusCode.ERROR) {
-                expect(s.attributes.error).toBeTruthy();
+                expect(s.attributes["error"]).toBeTruthy();
             }
             else {
-                expect(s.attributes.error).toBeFalsy();
+                expect(s.attributes["error"]).toBeFalsy();
             }
         });
     });

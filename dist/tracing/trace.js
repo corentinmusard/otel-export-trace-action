@@ -30,7 +30,7 @@ const exporter_trace_otlp_grpc_1 = require("@opentelemetry/exporter-trace-otlp-g
 const exporter_trace_otlp_proto_1 = require("@opentelemetry/exporter-trace-otlp-proto");
 const semantic_conventions_1 = require("@opentelemetry/semantic-conventions");
 const resources_1 = require("@opentelemetry/resources");
-const OTEL_CONSOLE_ONLY = process.env.OTEL_CONSOLE_ONLY === "true";
+const OTEL_CONSOLE_ONLY = process.env["OTEL_CONSOLE_ONLY"] === "true";
 function stringToHeader(value) {
     const pairs = value.split(",");
     return pairs.reduce((result, item) => {

@@ -8,11 +8,21 @@
     "baseUrl": "./",
     "sourceMap": true,
     "outDir": "./dist",
-    "noImplicitAny": true,
-    "esModuleInterop": true,
-    "forceConsistentCasingInFileNames": true,
+    "skipLibCheck": true,
+    // Strict Checks
     "strict": true,
-    "skipLibCheck": true
+    "noPropertyAccessFromIndexSignature": true,
+    //"noUncheckedIndexedAccess": true, // FIXME: uncomment that line
+    "exactOptionalPropertyTypes": true,
+    "noStrictGenericChecks": false,
+    // Linter Checks
+    "noImplicitReturns": true,
+    "noImplicitOverride": true,
+    "noFallthroughCasesInSwitch": true,
+    "noUnusedLocals": true,
+    "noUnusedParameters": true,
+    "allowUnreachableCode": false,
+    "allowUnusedLabels": false
   },
   "exclude": ["./dist", "./node_modules", "./__tests__", "./coverage"]
 }

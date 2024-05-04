@@ -43,6 +43,7 @@ function toLinks(
     return undefined;
   }
   // TODO implement Links
+  return undefined;
 }
 
 function toAttributeValue(

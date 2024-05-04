@@ -71,7 +71,7 @@ async function getWorkflowRunArtifactMap(context, octokit, runId) {
         const match = artifact.name.match(/\{(?<jobName>.*)\}\{(?<stepName>.*)\}/);
         const next = { ...result };
         /* istanbul ignore next */
-        if (match?.groups?.jobName && match?.groups?.stepName) {
+        if (match?.groups?.["jobName"] && match?.groups?.["stepName"]) {
             const { jobName, stepName } = match.groups;
             core.debug(`Found Artifact for Job<${jobName}> Step<${stepName}>`);
             if (!(jobName in next)) {
@@ -115,7 +115,7 @@ async function getSelfArtifactMap() {
     const artifactsMap = responses.reduce((result, { artifactName, downloadPath }) => {
         const next = { ...result };
         const match = artifactName.match(/\{(?<jobName>.*)\}\{(?<stepName>.*)\}/);
-        if (match?.groups?.jobName && match?.groups?.stepName) {
+        if (match?.groups?.["jobName"] && match?.groups?.["stepName"]) {
             const { jobName, stepName } = match.groups;
             core.debug(`Found Artifact for Job<${jobName}> Step<${stepName}>`);
             if (!(jobName in next)) {

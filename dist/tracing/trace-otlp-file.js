@@ -59,6 +59,7 @@ function toLinks(links) {
         return undefined;
     }
     // TODO implement Links
+    return undefined;
 }
 function toAttributeValue(value) {
     /* istanbul ignore else */

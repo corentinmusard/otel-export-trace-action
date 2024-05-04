@@ -79160,7 +79160,7 @@ async function getWorkflowRunArtifactMap(context, octokit, runId) {
         const match = artifact.name.match(/\{(?<jobName>.*)\}\{(?<stepName>.*)\}/);
         const next = { ...result };
         /* istanbul ignore next */
-        if (match?.groups?.jobName && match?.groups?.stepName) {
+        if (match?.groups?.["jobName"] && match?.groups?.["stepName"]) {
             const { jobName, stepName } = match.groups;
             core.debug(`Found Artifact for Job<${jobName}> Step<${stepName}>`);
             if (!(jobName in next)) {
@@ -79204,7 +79204,7 @@ async function getSelfArtifactMap() {
     const artifactsMap = responses.reduce((result, { artifactName, downloadPath }) => {
         const next = { ...result };
         const match = artifactName.match(/\{(?<jobName>.*)\}\{(?<stepName>.*)\}/);
-        if (match?.groups?.jobName && match?.groups?.stepName) {
+        if (match?.groups?.["jobName"] && match?.groups?.["stepName"]) {
             const { jobName, stepName } = match.groups;
             core.debug(`Found Artifact for Job<${jobName}> Step<${stepName}>`);
             if (!(jobName in next)) {
@@ -79338,9 +79338,9 @@ async function run() {
     const ghContext = github.context;
     const otlpEndpoint = core.getInput("otlpEndpoint");
     const otlpHeaders = core.getInput("otlpHeaders");
-    const otelServiceName = core.getInput("otelServiceName") || process.env.OTEL_SERVICE_NAME || "";
+    const otelServiceName = core.getInput("otelServiceName") || process.env["OTEL_SERVICE_NAME"] || "";
     const runId = parseInt(core.getInput("runId") || `${ghContext.runId}`);
-    const ghToken = core.getInput("githubToken") || process.env.GITHUB_TOKEN || "";
+    const ghToken = core.getInput("githubToken") || process.env["GITHUB_TOKEN"] || "";
     const octokit = github.getOctokit(ghToken);
     core.info(`Get Workflow Run Jobs for ${runId}`);
     const workflowRunJobs = await (0, github_1.getWorkflowRunJobs)(ghContext, octokit, runId);
@@ -79754,6 +79754,7 @@ function toLinks(links) {
         return undefined;
     }
     // TODO implement Links
+    return undefined;
 }
 function toAttributeValue(value) {
     /* istanbul ignore else */
@@ -79873,7 +79874,7 @@ const exporter_trace_otlp_grpc_1 = __nccwpck_require__(60160);
 const exporter_trace_otlp_proto_1 = __nccwpck_require__(97859);
 const semantic_conventions_1 = __nccwpck_require__(67275);
 const resources_1 = __nccwpck_require__(3871);
-const OTEL_CONSOLE_ONLY = process.env.OTEL_CONSOLE_ONLY === "true";
+const OTEL_CONSOLE_ONLY = process.env["OTEL_CONSOLE_ONLY"] === "true";
 function stringToHeader(value) {
     const pairs = value.split(",");
     return pairs.reduce((result, item) => {
