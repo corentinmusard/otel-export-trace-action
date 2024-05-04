@@ -24,12 +24,12 @@ export async function run() {
     otlpEndpoint,
     otlpHeaders,
     workflowRunJobs,
-    otelServiceName
+    otelServiceName,
   );
 
   try {
     core.info(
-      `Trace Workflow Run Jobs for ${runId} and export to ${otlpEndpoint}`
+      `Trace Workflow Run Jobs for ${runId} and export to ${otlpEndpoint}`,
     );
     const spanContext = await traceWorkflowRunJobs({
       provider,

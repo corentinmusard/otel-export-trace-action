@@ -1,4 +1,4 @@
-import path from "path";
+import * as path from "path";
 import * as api from "@opentelemetry/api";
 import {
   Tracer,
@@ -47,14 +47,14 @@ describe("traceJunitArtifact", () => {
       "src",
       "tracing",
       "__assets__",
-      "testsuites-trace.otlp"
+      "testsuites-trace.otlp",
     );
     const startTime = new Date("2022-01-22T04:45:30");
 
     const span = tracer.startSpan(
       "traceTestReportArtifact",
       { startTime, root: true, attributes: { root: true } },
-      api.ROOT_CONTEXT
+      api.ROOT_CONTEXT,
     );
     await traceOTLPFile({
       tracer,
@@ -88,14 +88,14 @@ describe("traceJunitArtifact", () => {
       "src",
       "tracing",
       "__assets__",
-      "testsuite-trace.otlp"
+      "testsuite-trace.otlp",
     );
     const startTime = new Date("2022-01-22T04:45:30");
 
     const span = tracer.startSpan(
       "traceTestReportArtifact",
       { startTime, root: true, attributes: { root: true } },
-      api.ROOT_CONTEXT
+      api.ROOT_CONTEXT,
     );
     await traceOTLPFile({
       tracer,
@@ -129,14 +129,14 @@ describe("traceJunitArtifact", () => {
       "src",
       "tracing",
       "__assets__",
-      "fail-test-trace.otlp"
+      "fail-test-trace.otlp",
     );
     const startTime = new Date("2022-02-01T18:37:11");
 
     const span = tracer.startSpan(
       "traceTestReportArtifact",
       { startTime, root: true, attributes: { root: true } },
-      api.ROOT_CONTEXT
+      api.ROOT_CONTEXT,
     );
     await traceOTLPFile({
       tracer,

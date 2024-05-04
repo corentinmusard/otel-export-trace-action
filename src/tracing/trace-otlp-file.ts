@@ -12,7 +12,7 @@ type ExportTraceServiceRequest =
 
 /* istanbul ignore next */
 function toSpanKind(
-  spanKind: otlpTypes.opentelemetryProto.trace.v1.Span.SpanKind | undefined
+  spanKind: otlpTypes.opentelemetryProto.trace.v1.Span.SpanKind | undefined,
 ): api.SpanKind {
   switch (spanKind) {
     /* istanbul ignore next */
@@ -36,7 +36,7 @@ function toSpanKind(
 }
 
 function toLinks(
-  links: otlpTypes.opentelemetryProto.trace.v1.Span.Link[] | undefined
+  links: otlpTypes.opentelemetryProto.trace.v1.Span.Link[] | undefined,
 ): Link[] | undefined {
   /* istanbul ignore if */
   if (links === undefined) {
@@ -46,7 +46,7 @@ function toLinks(
 }
 
 function toAttributeValue(
-  value: otlpTypes.opentelemetryProto.common.v1.AnyValue
+  value: otlpTypes.opentelemetryProto.common.v1.AnyValue,
 ): AttributeValue | undefined {
   /* istanbul ignore else */
   if ("stringValue" in value) {
@@ -63,7 +63,7 @@ function toAttributeValue(
     return JSON.stringify(
       value.kvlistValue?.values.reduce((result, { key, value }) => {
         return { ...result, [key]: toAttributeValue(value) };
-      }, {})
+      }, {}),
     );
   }
   /* istanbul ignore next */
@@ -71,7 +71,7 @@ function toAttributeValue(
 }
 
 function toAttributes(
-  attributes: otlpTypes.opentelemetryProto.common.v1.KeyValue[] | undefined
+  attributes: otlpTypes.opentelemetryProto.common.v1.KeyValue[] | undefined,
 ): Attributes {
   /* istanbul ignore if */
   if (!attributes) {
@@ -105,7 +105,7 @@ function toSpan({ otlpSpan, tracer, parentSpan }: ToSpanParams): api.Span {
     toSpanKind(otlpSpan.kind),
     otlpSpan.parentSpanId || parentSpan.spanContext().spanId,
     toLinks(otlpSpan.links),
-    new Date((otlpSpan.startTimeUnixNano as number) / 1000000)
+    new Date((otlpSpan.startTimeUnixNano as number) / 1000000),
   );
 }
 
@@ -129,7 +129,7 @@ export async function traceOTLPFile({
   for await (const line of rl) {
     if (line) {
       const serviceRequest: ExportTraceServiceRequest = JSON.parse(
-        line
+        line,
       ) as ExportTraceServiceRequest;
       for (const resourceSpans of serviceRequest.resourceSpans) {
         for (const libSpans of resourceSpans.instrumentationLibrarySpans) {
@@ -138,7 +138,7 @@ export async function traceOTLPFile({
               core.debug(
                 `Trace Test ParentSpan<${
                   otlpSpan.parentSpanId || parentSpan.spanContext().spanId
-                }> -> Span<${otlpSpan.spanId}> `
+                }> -> Span<${otlpSpan.spanId}> `,
               );
               const span = toSpan({
                 otlpSpan,
@@ -154,7 +154,7 @@ export async function traceOTLPFile({
                 span.setStatus(otlpSpan.status);
               }
               span.end(
-                new Date((otlpSpan.endTimeUnixNano as number) / 1000000)
+                new Date((otlpSpan.endTimeUnixNano as number) / 1000000),
               );
             }
           }

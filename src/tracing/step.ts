@@ -52,7 +52,7 @@ export async function traceWorkflowRunStep({
       },
       startTime,
     },
-    ctx
+    ctx,
   );
   const spanId = span.spanContext().spanId;
   try {

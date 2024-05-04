@@ -1,11 +1,18 @@
 {
-  "extends": "@tsconfig/node12/tsconfig.json",
+  "$schema": "https://json.schemastore.org/tsconfig",
   "compilerOptions": {
-    "noImplicitAny": true, // ts recommended
-    "rootDir": "src",
-    "baseUrl": "src",
-    "outDir": "lib",
-    "resolveJsonModule": true
+    "target": "ESNext",
+    "module": "NodeNext",
+    "moduleResolution": "NodeNext",
+    "rootDir": "./src",
+    "baseUrl": "./",
+    "sourceMap": true,
+    "outDir": "./dist",
+    "noImplicitAny": true,
+    "esModuleInterop": true,
+    "forceConsistentCasingInFileNames": true,
+    "strict": true,
+    "skipLibCheck": true
   },
-  "exclude": ["jest.config.ts", "jest.setup.ts", "config.ts"]
+  "exclude": ["./dist", "./node_modules", "./__tests__", "./coverage"]
 }

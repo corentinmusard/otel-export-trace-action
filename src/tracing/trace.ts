@@ -38,7 +38,7 @@ export function createTracerProvider(
   otlpEndpoint: string,
   otlpHeaders: string,
   workflowRunJobs: WorkflowRunJobs,
-  otelServiceName?: string | null | undefined
+  otelServiceName?: string | null | undefined,
 ) {
   const serviceName =
     otelServiceName ||

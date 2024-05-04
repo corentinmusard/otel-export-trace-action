@@ -32,10 +32,10 @@ describe("createTracerProvider", () => {
       subject = createTracerProvider(
         "localhost",
         "test=foo",
-        mockWorkflowRunJobs
+        mockWorkflowRunJobs,
       );
       expect(
-        subject.resource.attributes[SemanticResourceAttributes.SERVICE_NAME]
+        subject.resource.attributes[SemanticResourceAttributes.SERVICE_NAME],
       ).toEqual(mockWorkflowRunJobs.workflowRun.name);
     });
 
@@ -44,10 +44,10 @@ describe("createTracerProvider", () => {
       subject = createTracerProvider(
         "localhost",
         "test=foo",
-        mockWorkflowRunJobs
+        mockWorkflowRunJobs,
       );
       expect(
-        subject.resource.attributes[SemanticResourceAttributes.SERVICE_NAME]
+        subject.resource.attributes[SemanticResourceAttributes.SERVICE_NAME],
       ).toEqual(`${mockWorkflowRunJobs.workflowRun.id}`);
     });
 
@@ -56,10 +56,10 @@ describe("createTracerProvider", () => {
         "localhost",
         "test=foo",
         mockWorkflowRunJobs,
-        "custom-service-name"
+        "custom-service-name",
       );
       expect(
-        subject.resource.attributes[SemanticResourceAttributes.SERVICE_NAME]
+        subject.resource.attributes[SemanticResourceAttributes.SERVICE_NAME],
       ).toEqual("custom-service-name");
     });
 
@@ -67,19 +67,19 @@ describe("createTracerProvider", () => {
       subject = createTracerProvider(
         "localhost",
         "test=foo",
-        mockWorkflowRunJobs
+        mockWorkflowRunJobs,
       );
       expect(
         subject.resource.attributes[
           SemanticResourceAttributes.SERVICE_INSTANCE_ID
-        ]
+        ],
       ).toEqual(
         [
           mockWorkflowRunJobs.workflowRun.repository.full_name,
           mockWorkflowRunJobs.workflowRun.workflow_id,
           mockWorkflowRunJobs.workflowRun.id,
           mockWorkflowRunJobs.workflowRun.run_attempt,
-        ].join("/")
+        ].join("/"),
       );
     });
 
@@ -87,12 +87,12 @@ describe("createTracerProvider", () => {
       subject = createTracerProvider(
         "localhost",
         "test=foo",
-        mockWorkflowRunJobs
+        mockWorkflowRunJobs,
       );
       expect(
         subject.resource.attributes[
           SemanticResourceAttributes.SERVICE_NAMESPACE
-        ]
+        ],
       ).toEqual(mockWorkflowRunJobs.workflowRun.repository.full_name);
     });
   });
@@ -101,7 +101,7 @@ describe("createTracerProvider", () => {
     subject = createTracerProvider(
       "localhost",
       "test=foo",
-      mockWorkflowRunJobs
+      mockWorkflowRunJobs,
     );
     const spanProcessor = subject.getActiveSpanProcessor();
     expect(spanProcessor).toBeDefined();
@@ -111,7 +111,7 @@ describe("createTracerProvider", () => {
     subject = createTracerProvider(
       "https://localhost",
       "test=foo",
-      mockWorkflowRunJobs
+      mockWorkflowRunJobs,
     );
     const spanProcessor = subject.getActiveSpanProcessor();
     expect(spanProcessor).toBeDefined();

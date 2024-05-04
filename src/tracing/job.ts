@@ -31,7 +31,7 @@ export async function traceWorkflowRunJobs({
 
   const startTime = new Date(
     workflowRunJobs.workflowRun.run_started_at ||
-      workflowRunJobs.workflowRun.created_at
+      workflowRunJobs.workflowRun.created_at,
   );
   let headRef = undefined;
   let baseRef = undefined;
@@ -64,7 +64,7 @@ export async function traceWorkflowRunJobs({
           [`${prefix}.base.repo.name`]: pr.base.repo.name,
         };
       },
-      {}
+      {},
     );
   }
 
@@ -118,7 +118,7 @@ export async function traceWorkflowRunJobs({
       root: true,
       startTime,
     },
-    ROOT_CONTEXT
+    ROOT_CONTEXT,
   );
   core.debug(`TraceID: ${rootSpan.spanContext().traceId}`);
   let code = SpanStatusCode.OK;
@@ -129,7 +129,7 @@ export async function traceWorkflowRunJobs({
   core.debug(
     `Root Span: ${rootSpan.spanContext().traceId}: ${
       workflowRunJobs.workflowRun.created_at
-    }`
+    }`,
   );
 
   try {
@@ -203,7 +203,7 @@ async function traceWorkflowRunJob({
       },
       startTime,
     },
-    ctx
+    ctx,
   );
   const spanId = span.spanContext().spanId;
   core.debug(`Job Span<${spanId}>: Started<${job.started_at}>`);

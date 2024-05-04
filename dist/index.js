@@ -1,836 +1,6 @@
 require('./sourcemap-register.js');/******/ (() => { // webpackBootstrap
 /******/ 	var __webpack_modules__ = ({
 
-/***/ 85928:
-/***/ (function(__unused_webpack_module, exports, __nccwpck_require__) {
-
-"use strict";
-
-var __createBinding = (this && this.__createBinding) || (Object.create ? (function(o, m, k, k2) {
-    if (k2 === undefined) k2 = k;
-    Object.defineProperty(o, k2, { enumerable: true, get: function() { return m[k]; } });
-}) : (function(o, m, k, k2) {
-    if (k2 === undefined) k2 = k;
-    o[k2] = m[k];
-}));
-var __setModuleDefault = (this && this.__setModuleDefault) || (Object.create ? (function(o, v) {
-    Object.defineProperty(o, "default", { enumerable: true, value: v });
-}) : function(o, v) {
-    o["default"] = v;
-});
-var __importStar = (this && this.__importStar) || function (mod) {
-    if (mod && mod.__esModule) return mod;
-    var result = {};
-    if (mod != null) for (var k in mod) if (k !== "default" && Object.prototype.hasOwnProperty.call(mod, k)) __createBinding(result, mod, k);
-    __setModuleDefault(result, mod);
-    return result;
-};
-var __importDefault = (this && this.__importDefault) || function (mod) {
-    return (mod && mod.__esModule) ? mod : { "default": mod };
-};
-Object.defineProperty(exports, "__esModule", ({ value: true }));
-exports.getWorkflowRunJobs = exports.listWorkflowRunArtifacts = void 0;
-const core = __importStar(__nccwpck_require__(42186));
-const axios_1 = __importDefault(__nccwpck_require__(96545));
-const JSZip = __importStar(__nccwpck_require__(83592));
-const fs = __importStar(__nccwpck_require__(57147));
-const artifact = __importStar(__nccwpck_require__(52605));
-const path = __importStar(__nccwpck_require__(71017));
-async function listWorkflowRunArtifacts(context, octokit, runId) {
-    let artifactsLookup = {};
-    /* istanbul ignore if */
-    if (runId === context.runId) {
-        artifactsLookup = await getSelfArtifactMap();
-    }
-    else {
-        artifactsLookup = await getWorkflowRunArtifactMap(context, octokit, runId);
-    }
-    return (jobName, stepName) => {
-        try {
-            return artifactsLookup[jobName][stepName];
-        }
-        catch (e) {
-            /* istanbul ignore next */
-            return undefined;
-        }
-    };
-}
-exports.listWorkflowRunArtifacts = listWorkflowRunArtifacts;
-async function getWorkflowRunArtifactMap(context, octokit, runId) {
-    const artifactsList = [];
-    const pageSize = 100;
-    for (let page = 1, hasNext = true; hasNext; page++) {
-        const listArtifactsResponse = await octokit.rest.actions.listWorkflowRunArtifacts({
-            ...context.repo,
-            run_id: runId,
-            page,
-            per_page: pageSize,
-        });
-        artifactsList.push(...listArtifactsResponse.data.artifacts);
-        hasNext = artifactsList.length < listArtifactsResponse.data.total_count;
-    }
-    const artifactsLookup = await artifactsList.reduce(async (resultP, artifact) => {
-        var _a, _b;
-        const result = await resultP;
-        const match = artifact.name.match(/\{(?<jobName>.*)\}\{(?<stepName>.*)\}/);
-        const next = { ...result };
-        /* istanbul ignore next */
-        if (((_a = match === null || match === void 0 ? void 0 : match.groups) === null || _a === void 0 ? void 0 : _a.jobName) && ((_b = match === null || match === void 0 ? void 0 : match.groups) === null || _b === void 0 ? void 0 : _b.stepName)) {
-            const { jobName, stepName } = match.groups;
-            core.debug(`Found Artifact for Job<${jobName}> Step<${stepName}>`);
-            if (!(jobName in next)) {
-                next[jobName] = {};
-            }
-            const downloadResponse = await octokit.rest.actions.downloadArtifact({
-                ...context.repo,
-                artifact_id: artifact.id,
-                archive_format: "zip",
-            });
-            const response = await (0, axios_1.default)({
-                method: "get",
-                url: downloadResponse.url,
-                responseType: "arraybuffer",
-            });
-            const buf = response.data;
-            const zip = await JSZip.loadAsync(buf);
-            const writeStream = fs.createWriteStream(`${artifact.name}.log`);
-            try {
-                zip.files[Object.keys(zip.files)[0]].nodeStream().pipe(writeStream);
-                await new Promise((fulfill) => writeStream.on("finish", fulfill));
-                core.debug(`Downloaded Artifact ${writeStream.path.toString()}`);
-                next[jobName][stepName] = {
-                    jobName,
-                    stepName,
-                    path: writeStream.path.toString(),
-                };
-            }
-            finally {
-                writeStream.close();
-            }
-        }
-        return next;
-    }, Promise.resolve({}));
-    return artifactsLookup;
-}
-/* istanbul ignore next */
-async function getSelfArtifactMap() {
-    const client = artifact.create();
-    const responses = await client.downloadAllArtifacts();
-    const artifactsMap = responses.reduce((result, { artifactName, downloadPath }) => {
-        var _a, _b;
-        const next = { ...result };
-        const match = artifactName.match(/\{(?<jobName>.*)\}\{(?<stepName>.*)\}/);
-        if (((_a = match === null || match === void 0 ? void 0 : match.groups) === null || _a === void 0 ? void 0 : _a.jobName) && ((_b = match === null || match === void 0 ? void 0 : match.groups) === null || _b === void 0 ? void 0 : _b.stepName)) {
-            const { jobName, stepName } = match.groups;
-            core.debug(`Found Artifact for Job<${jobName}> Step<${stepName}>`);
-            if (!(jobName in next)) {
-                next[jobName] = {};
-            }
-            const artifactDirFiles = fs.readdirSync(downloadPath);
-            if (artifactDirFiles && artifactDirFiles.length > 0) {
-                next[jobName][stepName] = {
-                    jobName,
-                    stepName,
-                    path: path.join(downloadPath, artifactDirFiles[0]),
-                };
-            }
-        }
-        return next;
-    }, {});
-    return artifactsMap;
-}
-// TODO add test coverage
-/* istanbul ignore next */
-async function listJobsForWorkflowRun(context, octokit, runId) {
-    const jobs = [];
-    const pageSize = 100;
-    for (let page = 1, hasNext = true; hasNext; page++) {
-        const listJobsForWorkflowRunResponse = await octokit.rest.actions.listJobsForWorkflowRun({
-            ...context.repo,
-            run_id: runId,
-            filter: "latest",
-            page,
-            per_page: pageSize,
-        });
-        jobs.push(...listJobsForWorkflowRunResponse.data.jobs);
-        hasNext = jobs.length < listJobsForWorkflowRunResponse.data.total_count;
-    }
-    return jobs;
-}
-// TODO add test coverage
-/* istanbul ignore next */
-async function getWorkflowRunJobs(context, octokit, runId) {
-    const getWorkflowRunResponse = await octokit.rest.actions.getWorkflowRun({
-        ...context.repo,
-        run_id: runId,
-    });
-    const workflowRunArtifacts = await listWorkflowRunArtifacts(context, octokit, runId);
-    const jobs = await listJobsForWorkflowRun(context, octokit, runId);
-    const workflowRunJobs = {
-        workflowRun: getWorkflowRunResponse.data,
-        jobs,
-        workflowRunArtifacts,
-    };
-    return workflowRunJobs;
-}
-exports.getWorkflowRunJobs = getWorkflowRunJobs;
-
-
-/***/ }),
-
-/***/ 94822:
-/***/ (function(__unused_webpack_module, exports, __nccwpck_require__) {
-
-"use strict";
-
-var __createBinding = (this && this.__createBinding) || (Object.create ? (function(o, m, k, k2) {
-    if (k2 === undefined) k2 = k;
-    Object.defineProperty(o, k2, { enumerable: true, get: function() { return m[k]; } });
-}) : (function(o, m, k, k2) {
-    if (k2 === undefined) k2 = k;
-    o[k2] = m[k];
-}));
-var __setModuleDefault = (this && this.__setModuleDefault) || (Object.create ? (function(o, v) {
-    Object.defineProperty(o, "default", { enumerable: true, value: v });
-}) : function(o, v) {
-    o["default"] = v;
-});
-var __importStar = (this && this.__importStar) || function (mod) {
-    if (mod && mod.__esModule) return mod;
-    var result = {};
-    if (mod != null) for (var k in mod) if (k !== "default" && Object.prototype.hasOwnProperty.call(mod, k)) __createBinding(result, mod, k);
-    __setModuleDefault(result, mod);
-    return result;
-};
-Object.defineProperty(exports, "__esModule", ({ value: true }));
-const runner_1 = __nccwpck_require__(28209);
-const core = __importStar(__nccwpck_require__(42186));
-(0, runner_1.run)().catch((error) => {
-    core.setFailed(error.message);
-});
-
-
-/***/ }),
-
-/***/ 28209:
-/***/ (function(__unused_webpack_module, exports, __nccwpck_require__) {
-
-"use strict";
-
-var __createBinding = (this && this.__createBinding) || (Object.create ? (function(o, m, k, k2) {
-    if (k2 === undefined) k2 = k;
-    Object.defineProperty(o, k2, { enumerable: true, get: function() { return m[k]; } });
-}) : (function(o, m, k, k2) {
-    if (k2 === undefined) k2 = k;
-    o[k2] = m[k];
-}));
-var __setModuleDefault = (this && this.__setModuleDefault) || (Object.create ? (function(o, v) {
-    Object.defineProperty(o, "default", { enumerable: true, value: v });
-}) : function(o, v) {
-    o["default"] = v;
-});
-var __importStar = (this && this.__importStar) || function (mod) {
-    if (mod && mod.__esModule) return mod;
-    var result = {};
-    if (mod != null) for (var k in mod) if (k !== "default" && Object.prototype.hasOwnProperty.call(mod, k)) __createBinding(result, mod, k);
-    __setModuleDefault(result, mod);
-    return result;
-};
-Object.defineProperty(exports, "__esModule", ({ value: true }));
-exports.run = void 0;
-const github = __importStar(__nccwpck_require__(95438));
-const core = __importStar(__nccwpck_require__(42186));
-const github_1 = __nccwpck_require__(85928);
-const tracing_1 = __nccwpck_require__(36590);
-async function run() {
-    const ghContext = github.context;
-    const otlpEndpoint = core.getInput("otlpEndpoint");
-    const otlpHeaders = core.getInput("otlpHeaders");
-    const otelServiceName = core.getInput("otelServiceName") || process.env.OTEL_SERVICE_NAME || "";
-    const runId = parseInt(core.getInput("runId") || `${ghContext.runId}`);
-    const ghToken = core.getInput("githubToken") || process.env.GITHUB_TOKEN || "";
-    const octokit = github.getOctokit(ghToken);
-    core.info(`Get Workflow Run Jobs for ${runId}`);
-    const workflowRunJobs = await (0, github_1.getWorkflowRunJobs)(ghContext, octokit, runId);
-    core.info(`Create Trace Provider for ${otlpEndpoint}`);
-    const provider = (0, tracing_1.createTracerProvider)(otlpEndpoint, otlpHeaders, workflowRunJobs, otelServiceName);
-    try {
-        core.info(`Trace Workflow Run Jobs for ${runId} and export to ${otlpEndpoint}`);
-        const spanContext = await (0, tracing_1.traceWorkflowRunJobs)({
-            provider,
-            workflowRunJobs,
-        });
-        core.setOutput("traceId", spanContext.traceId);
-    }
-    finally {
-        core.info("Shutdown Trace Provider");
-        setTimeout(() => {
-            provider
-                .shutdown()
-                .then(() => {
-                core.info("Provider shutdown");
-            })
-                .catch((error) => {
-                console.warn(error.message);
-            });
-        }, 2000);
-    }
-}
-exports.run = run;
-
-
-/***/ }),
-
-/***/ 36590:
-/***/ ((__unused_webpack_module, exports, __nccwpck_require__) => {
-
-"use strict";
-
-Object.defineProperty(exports, "__esModule", ({ value: true }));
-exports.createTracerProvider = exports.traceWorkflowRunJobs = void 0;
-var job_1 = __nccwpck_require__(26314);
-Object.defineProperty(exports, "traceWorkflowRunJobs", ({ enumerable: true, get: function () { return job_1.traceWorkflowRunJobs; } }));
-var trace_1 = __nccwpck_require__(7390);
-Object.defineProperty(exports, "createTracerProvider", ({ enumerable: true, get: function () { return trace_1.createTracerProvider; } }));
-
-
-/***/ }),
-
-/***/ 26314:
-/***/ (function(__unused_webpack_module, exports, __nccwpck_require__) {
-
-"use strict";
-
-var __createBinding = (this && this.__createBinding) || (Object.create ? (function(o, m, k, k2) {
-    if (k2 === undefined) k2 = k;
-    Object.defineProperty(o, k2, { enumerable: true, get: function() { return m[k]; } });
-}) : (function(o, m, k, k2) {
-    if (k2 === undefined) k2 = k;
-    o[k2] = m[k];
-}));
-var __setModuleDefault = (this && this.__setModuleDefault) || (Object.create ? (function(o, v) {
-    Object.defineProperty(o, "default", { enumerable: true, value: v });
-}) : function(o, v) {
-    o["default"] = v;
-});
-var __importStar = (this && this.__importStar) || function (mod) {
-    if (mod && mod.__esModule) return mod;
-    var result = {};
-    if (mod != null) for (var k in mod) if (k !== "default" && Object.prototype.hasOwnProperty.call(mod, k)) __createBinding(result, mod, k);
-    __setModuleDefault(result, mod);
-    return result;
-};
-Object.defineProperty(exports, "__esModule", ({ value: true }));
-exports.traceWorkflowRunJobs = void 0;
-const api_1 = __nccwpck_require__(65163);
-const core = __importStar(__nccwpck_require__(42186));
-const step_1 = __nccwpck_require__(59431);
-async function traceWorkflowRunJobs({ provider, workflowRunJobs, }) {
-    var _a, _b, _c, _d, _e, _f, _g, _h, _j, _k, _l, _m, _o, _p, _q, _r, _s, _t, _u;
-    const tracer = provider.getTracer("otel-cicd-action");
-    const startTime = new Date(workflowRunJobs.workflowRun.run_started_at ||
-        workflowRunJobs.workflowRun.created_at);
-    let headRef = undefined;
-    let baseRef = undefined;
-    let baseSha = undefined;
-    let pull_requests = {};
-    if (workflowRunJobs.workflowRun.pull_requests &&
-        workflowRunJobs.workflowRun.pull_requests.length > 0) {
-        headRef = (_a = workflowRunJobs.workflowRun.pull_requests[0].head) === null || _a === void 0 ? void 0 : _a.ref;
-        baseRef = (_b = workflowRunJobs.workflowRun.pull_requests[0].base) === null || _b === void 0 ? void 0 : _b.ref;
-        baseSha = (_c = workflowRunJobs.workflowRun.pull_requests[0].base) === null || _c === void 0 ? void 0 : _c.sha;
-        pull_requests = workflowRunJobs.workflowRun.pull_requests.reduce((result, pr, idx) => {
-            const prefix = `github.pull_requests.${idx}`;
-            return {
-                ...result,
-                [`${prefix}.id`]: pr.id,
-                [`${prefix}.url`]: pr.url,
-                [`${prefix}.number`]: pr.number,
-                [`${prefix}.head.sha`]: pr.head.sha,
-                [`${prefix}.head.ref`]: pr.head.ref,
-                [`${prefix}.head.repo.id`]: pr.head.repo.id,
-                [`${prefix}.head.repo.url`]: pr.head.repo.url,
-                [`${prefix}.head.repo.name`]: pr.head.repo.name,
-                [`${prefix}.base.ref`]: pr.base.ref,
-                [`${prefix}.base.sha`]: pr.base.sha,
-                [`${prefix}.base.repo.id`]: pr.base.repo.id,
-                [`${prefix}.base.repo.url`]: pr.base.repo.url,
-                [`${prefix}.base.repo.name`]: pr.base.repo.name,
-            };
-        }, {});
-    }
-    const rootSpan = tracer.startSpan(workflowRunJobs.workflowRun.name ||
-        `${workflowRunJobs.workflowRun.workflow_id}`, {
-        attributes: {
-            "github.workflow_id": workflowRunJobs.workflowRun.workflow_id,
-            "github.run_id": workflowRunJobs.workflowRun.id,
-            "github.run_number": workflowRunJobs.workflowRun.run_number,
-            "github.run_attempt": workflowRunJobs.workflowRun.run_attempt || 1,
-            "github.html_url": workflowRunJobs.workflowRun.html_url,
-            "github.workflow_url": workflowRunJobs.workflowRun.workflow_url,
-            "github.event": workflowRunJobs.workflowRun.event,
-            "github.workflow": workflowRunJobs.workflowRun.name || undefined,
-            "github.conclusion": workflowRunJobs.workflowRun.conclusion || undefined,
-            "github.created_at": workflowRunJobs.workflowRun.created_at,
-            "github.updated_at": workflowRunJobs.workflowRun.updated_at,
-            "github.run_started_at": workflowRunJobs.workflowRun.run_started_at,
-            "github.author_name": ((_e = (_d = workflowRunJobs.workflowRun.head_commit) === null || _d === void 0 ? void 0 : _d.author) === null || _e === void 0 ? void 0 : _e.name) || undefined,
-            "github.author_email": ((_g = (_f = workflowRunJobs.workflowRun.head_commit) === null || _f === void 0 ? void 0 : _f.author) === null || _g === void 0 ? void 0 : _g.email) || undefined,
-            "github.head_commit.id": ((_h = workflowRunJobs.workflowRun.head_commit) === null || _h === void 0 ? void 0 : _h.id) || undefined,
-            "github.head_commit.tree_id": ((_j = workflowRunJobs.workflowRun.head_commit) === null || _j === void 0 ? void 0 : _j.tree_id) || undefined,
-            "github.head_commit.author.name": ((_l = (_k = workflowRunJobs.workflowRun.head_commit) === null || _k === void 0 ? void 0 : _k.author) === null || _l === void 0 ? void 0 : _l.email) || undefined,
-            "github.head_commit.author.email": ((_o = (_m = workflowRunJobs.workflowRun.head_commit) === null || _m === void 0 ? void 0 : _m.author) === null || _o === void 0 ? void 0 : _o.email) || undefined,
-            "github.head_commit.committer.name": ((_q = (_p = workflowRunJobs.workflowRun.head_commit) === null || _p === void 0 ? void 0 : _p.committer) === null || _q === void 0 ? void 0 : _q.email) ||
-                undefined,
-            "github.head_commit.committer.email": ((_s = (_r = workflowRunJobs.workflowRun.head_commit) === null || _r === void 0 ? void 0 : _r.committer) === null || _s === void 0 ? void 0 : _s.email) ||
-                undefined,
-            "github.head_commit.message": ((_t = workflowRunJobs.workflowRun.head_commit) === null || _t === void 0 ? void 0 : _t.message) || undefined,
-            "github.head_commit.timestamp": ((_u = workflowRunJobs.workflowRun.head_commit) === null || _u === void 0 ? void 0 : _u.timestamp) || undefined,
-            "github.head_sha": workflowRunJobs.workflowRun.head_sha,
-            "github.head_ref": headRef,
-            "github.base_ref": baseRef,
-            "github.base_sha": baseSha,
-            error: workflowRunJobs.workflowRun.conclusion === "failure",
-            ...pull_requests,
-        },
-        root: true,
-        startTime,
-    }, api_1.ROOT_CONTEXT);
-    core.debug(`TraceID: ${rootSpan.spanContext().traceId}`);
-    let code = api_1.SpanStatusCode.OK;
-    if (workflowRunJobs.workflowRun.conclusion === "failure") {
-        code = api_1.SpanStatusCode.ERROR;
-    }
-    rootSpan.setStatus({ code });
-    core.debug(`Root Span: ${rootSpan.spanContext().traceId}: ${workflowRunJobs.workflowRun.created_at}`);
-    try {
-        if (workflowRunJobs.jobs.length > 0) {
-            const firstJob = workflowRunJobs.jobs[0];
-            const queueCtx = api_1.trace.setSpan(api_1.ROOT_CONTEXT, rootSpan);
-            const queueSpan = tracer.startSpan("Queued", { startTime }, queueCtx);
-            queueSpan.end(new Date(firstJob.started_at));
-        }
-        for (let i = 0; i < workflowRunJobs.jobs.length; i++) {
-            const job = workflowRunJobs.jobs[i];
-            await traceWorkflowRunJob({
-                parentSpan: rootSpan,
-                parentContext: api_1.ROOT_CONTEXT,
-                trace: api_1.trace,
-                tracer,
-                job,
-                workflowArtifacts: workflowRunJobs.workflowRunArtifacts,
-            });
-        }
-    }
-    finally {
-        rootSpan.end(new Date(workflowRunJobs.workflowRun.updated_at));
-    }
-    return rootSpan.spanContext();
-}
-exports.traceWorkflowRunJobs = traceWorkflowRunJobs;
-async function traceWorkflowRunJob({ parentContext, trace, parentSpan, tracer, job, workflowArtifacts, }) {
-    var _a;
-    core.debug(`Trace Job ${job.id}`);
-    if (!job.completed_at) {
-        console.warn(`Job ${job.id} is not completed yet`);
-        return;
-    }
-    job.name;
-    const ctx = trace.setSpan(parentContext, parentSpan);
-    const startTime = new Date(job.started_at);
-    const completedTime = new Date(job.completed_at);
-    const span = tracer.startSpan(job.name, {
-        attributes: {
-            "github.job.id": job.id,
-            "github.job.name": job.name,
-            "github.job.run_id": job.run_id,
-            "github.job.run_attempt": job.run_attempt || 1,
-            "github.job.runner_group_id": job.runner_group_id || undefined,
-            "github.job.runner_group_name": job.runner_group_name || undefined,
-            "github.job.runner_name": job.runner_name || undefined,
-            "github.job.conclusion": job.conclusion || undefined,
-            "github.job.labels": job.labels.join(", ") || undefined,
-            "github.job.started_at": job.started_at || undefined,
-            "github.job.completed_at": job.completed_at || undefined,
-            "github.conclusion": job.conclusion || undefined,
-            error: job.conclusion === "failure",
-        },
-        startTime,
-    }, ctx);
-    const spanId = span.spanContext().spanId;
-    core.debug(`Job Span<${spanId}>: Started<${job.started_at}>`);
-    try {
-        let code = api_1.SpanStatusCode.OK;
-        if (job.conclusion === "failure") {
-            code = api_1.SpanStatusCode.ERROR;
-        }
-        span.setStatus({ code });
-        const numSteps = ((_a = job.steps) === null || _a === void 0 ? void 0 : _a.length) || 0;
-        core.debug(`Trace ${numSteps} Steps`);
-        if (job.steps !== undefined) {
-            for (let i = 0; i < job.steps.length; i++) {
-                const step = job.steps[i];
-                await (0, step_1.traceWorkflowRunStep)({
-                    job,
-                    parentContext: ctx,
-                    trace,
-                    parentSpan: span,
-                    tracer,
-                    workflowArtifacts,
-                    step,
-                });
-            }
-        }
-    }
-    finally {
-        core.debug(`Job Span<${spanId}>: Ended<${job.completed_at}>`);
-        // Some skipped and post jobs return completed_at dates that are older than started_at
-        span.end(new Date(Math.max(startTime.getTime(), completedTime.getTime())));
-    }
-}
-
-
-/***/ }),
-
-/***/ 59431:
-/***/ (function(__unused_webpack_module, exports, __nccwpck_require__) {
-
-"use strict";
-
-var __createBinding = (this && this.__createBinding) || (Object.create ? (function(o, m, k, k2) {
-    if (k2 === undefined) k2 = k;
-    Object.defineProperty(o, k2, { enumerable: true, get: function() { return m[k]; } });
-}) : (function(o, m, k, k2) {
-    if (k2 === undefined) k2 = k;
-    o[k2] = m[k];
-}));
-var __setModuleDefault = (this && this.__setModuleDefault) || (Object.create ? (function(o, v) {
-    Object.defineProperty(o, "default", { enumerable: true, value: v });
-}) : function(o, v) {
-    o["default"] = v;
-});
-var __importStar = (this && this.__importStar) || function (mod) {
-    if (mod && mod.__esModule) return mod;
-    var result = {};
-    if (mod != null) for (var k in mod) if (k !== "default" && Object.prototype.hasOwnProperty.call(mod, k)) __createBinding(result, mod, k);
-    __setModuleDefault(result, mod);
-    return result;
-};
-Object.defineProperty(exports, "__esModule", ({ value: true }));
-exports.traceWorkflowRunStep = void 0;
-const core = __importStar(__nccwpck_require__(42186));
-const api_1 = __nccwpck_require__(65163);
-const trace_otlp_file_1 = __nccwpck_require__(40535);
-async function traceWorkflowRunStep({ job, parentContext, parentSpan, trace, tracer, workflowArtifacts, step, }) {
-    if (!step || !step.completed_at || !step.started_at) {
-        const stepName = (step === null || step === void 0 ? void 0 : step.name) || "UNDEFINED";
-        console.warn(`Step ${stepName} is not completed yet.`);
-        return;
-    }
-    if (step.conclusion == "cancelled" || step.conclusion == "skipped") {
-        console.info(`Step ${step.name} did not run.`);
-        return;
-    }
-    core.debug(`Trace Step ${step.name}`);
-    const ctx = trace.setSpan(parentContext, parentSpan);
-    const startTime = new Date(step.started_at);
-    const completedTime = new Date(step.completed_at);
-    const span = tracer.startSpan(step.name, {
-        attributes: {
-            "github.job.step.name": step.name,
-            "github.job.step.number": step.number,
-            "github.job.step.started_at": step.started_at || undefined,
-            "github.job.step.completed_at": step.completed_at || undefined,
-            "github.job.step.id": step.id,
-            error: step.conclusion === "failure",
-        },
-        startTime,
-    }, ctx);
-    const spanId = span.spanContext().spanId;
-    try {
-        span.setStatus({ code: api_1.SpanStatusCode.ERROR });
-        if (step.conclusion !== "failure") {
-            span.setStatus({ code: api_1.SpanStatusCode.OK });
-        }
-        core.debug(`Step Span<${spanId}>: Started<${step.started_at}>`);
-        if (step.conclusion) {
-            span.setAttribute("github.job.step.conclusion", step.conclusion);
-        }
-        await traceArtifact({
-            tracer,
-            parentSpan: span,
-            job,
-            step,
-            startTime,
-            workflowArtifacts,
-        });
-    }
-    finally {
-        core.debug(`Step Span<${spanId}>: Ended<${step.completed_at}>`);
-        // Some skipped and post jobs return completed_at dates that are older than started_at
-        span.end(new Date(Math.max(startTime.getTime(), completedTime.getTime())));
-    }
-}
-exports.traceWorkflowRunStep = traceWorkflowRunStep;
-async function traceArtifact({ tracer, parentSpan, job, step, startTime, workflowArtifacts, }) {
-    const artifact = workflowArtifacts(job.name, step.name);
-    if (artifact) {
-        core.debug(`Found Artifact ${artifact === null || artifact === void 0 ? void 0 : artifact.path}`);
-        await (0, trace_otlp_file_1.traceOTLPFile)({
-            tracer,
-            parentSpan,
-            startTime,
-            path: artifact.path,
-        });
-    }
-    else {
-        core.debug(`No Artifact to trace for Job<${job.name}> Step<${step.name}>`);
-    }
-}
-
-
-/***/ }),
-
-/***/ 40535:
-/***/ (function(__unused_webpack_module, exports, __nccwpck_require__) {
-
-"use strict";
-
-var __createBinding = (this && this.__createBinding) || (Object.create ? (function(o, m, k, k2) {
-    if (k2 === undefined) k2 = k;
-    Object.defineProperty(o, k2, { enumerable: true, get: function() { return m[k]; } });
-}) : (function(o, m, k, k2) {
-    if (k2 === undefined) k2 = k;
-    o[k2] = m[k];
-}));
-var __setModuleDefault = (this && this.__setModuleDefault) || (Object.create ? (function(o, v) {
-    Object.defineProperty(o, "default", { enumerable: true, value: v });
-}) : function(o, v) {
-    o["default"] = v;
-});
-var __importStar = (this && this.__importStar) || function (mod) {
-    if (mod && mod.__esModule) return mod;
-    var result = {};
-    if (mod != null) for (var k in mod) if (k !== "default" && Object.prototype.hasOwnProperty.call(mod, k)) __createBinding(result, mod, k);
-    __setModuleDefault(result, mod);
-    return result;
-};
-Object.defineProperty(exports, "__esModule", ({ value: true }));
-exports.traceOTLPFile = void 0;
-const sdk_trace_base_1 = __nccwpck_require__(29253);
-const core_1 = __nccwpck_require__(89736);
-const exporter_trace_otlp_http_1 = __nccwpck_require__(35401);
-const core = __importStar(__nccwpck_require__(42186));
-const fs = __importStar(__nccwpck_require__(57147));
-const readline = __importStar(__nccwpck_require__(14521));
-const api = __importStar(__nccwpck_require__(65163));
-/* istanbul ignore next */
-function toSpanKind(spanKind) {
-    switch (spanKind) {
-        /* istanbul ignore next */
-        case exporter_trace_otlp_http_1.otlpTypes.opentelemetryProto.trace.v1.Span.SpanKind.SPAN_KIND_CLIENT:
-            return api.SpanKind.CLIENT;
-        /* istanbul ignore next */
-        case exporter_trace_otlp_http_1.otlpTypes.opentelemetryProto.trace.v1.Span.SpanKind.SPAN_KIND_CONSUMER:
-            return api.SpanKind.CONSUMER;
-        case exporter_trace_otlp_http_1.otlpTypes.opentelemetryProto.trace.v1.Span.SpanKind.SPAN_KIND_INTERNAL:
-            return api.SpanKind.INTERNAL;
-        /* istanbul ignore next */
-        case exporter_trace_otlp_http_1.otlpTypes.opentelemetryProto.trace.v1.Span.SpanKind.SPAN_KIND_PRODUCER:
-            return api.SpanKind.PRODUCER;
-        /* istanbul ignore next */
-        case exporter_trace_otlp_http_1.otlpTypes.opentelemetryProto.trace.v1.Span.SpanKind.SPAN_KIND_SERVER:
-            return api.SpanKind.SERVER;
-        /* istanbul ignore next */
-        default:
-            return api.SpanKind.INTERNAL;
-    }
-}
-function toLinks(links) {
-    /* istanbul ignore if */
-    if (links === undefined) {
-        return undefined;
-    }
-    // TODO implement Links
-}
-function toAttributeValue(value) {
-    var _a, _b;
-    /* istanbul ignore else */
-    if ("stringValue" in value) {
-        return value.stringValue;
-    }
-    else if ("arrayValue" in value) {
-        return JSON.stringify((_a = value.arrayValue) === null || _a === void 0 ? void 0 : _a.values);
-    }
-    else if ("boolValue" in value) {
-        return value.boolValue;
-    }
-    else if ("doubleValue" in value) {
-        return value.doubleValue;
-    }
-    else if ("intValue" in value) {
-        return value.intValue;
-    }
-    else if ("kvlistValue" in value) {
-        return JSON.stringify((_b = value.kvlistValue) === null || _b === void 0 ? void 0 : _b.values.reduce((result, { key, value }) => {
-            return { ...result, [key]: toAttributeValue(value) };
-        }, {}));
-    }
-    /* istanbul ignore next */
-    return undefined;
-}
-function toAttributes(attributes) {
-    /* istanbul ignore if */
-    if (!attributes) {
-        return {};
-    }
-    const rv = attributes.reduce((result, { key, value }) => {
-        return { ...result, [key]: toAttributeValue(value) };
-    }, {});
-    return rv;
-}
-function toSpan({ otlpSpan, tracer, parentSpan }) {
-    return new sdk_trace_base_1.Span(tracer, api.context.active(), otlpSpan.name, {
-        traceId: parentSpan.spanContext().traceId,
-        spanId: otlpSpan.spanId,
-        traceFlags: parentSpan.spanContext().traceFlags,
-        traceState: new core_1.TraceState(otlpSpan.traceState),
-    }, toSpanKind(otlpSpan.kind), otlpSpan.parentSpanId || parentSpan.spanContext().spanId, toLinks(otlpSpan.links), new Date(otlpSpan.startTimeUnixNano / 1000000));
-}
-async function traceOTLPFile({ tracer, parentSpan, path, }) {
-    const fileStream = fs.createReadStream(path);
-    const rl = readline.createInterface({
-        input: fileStream,
-        crlfDelay: Infinity,
-    });
-    for await (const line of rl) {
-        if (line) {
-            const serviceRequest = JSON.parse(line);
-            for (const resourceSpans of serviceRequest.resourceSpans) {
-                for (const libSpans of resourceSpans.instrumentationLibrarySpans) {
-                    if (libSpans.instrumentationLibrary) {
-                        for (const otlpSpan of libSpans.spans) {
-                            core.debug(`Trace Test ParentSpan<${otlpSpan.parentSpanId || parentSpan.spanContext().spanId}> -> Span<${otlpSpan.spanId}> `);
-                            const span = toSpan({
-                                otlpSpan,
-                                tracer,
-                                parentSpan,
-                            });
-                            const attributes = toAttributes(otlpSpan.attributes);
-                            if (attributes) {
-                                span.setAttributes(attributes);
-                            }
-                            if (otlpSpan.status) {
-                                span.setStatus(otlpSpan.status);
-                            }
-                            span.end(new Date(otlpSpan.endTimeUnixNano / 1000000));
-                        }
-                    }
-                }
-            }
-        }
-    }
-}
-exports.traceOTLPFile = traceOTLPFile;
-
-
-/***/ }),
-
-/***/ 7390:
-/***/ (function(__unused_webpack_module, exports, __nccwpck_require__) {
-
-"use strict";
-
-var __createBinding = (this && this.__createBinding) || (Object.create ? (function(o, m, k, k2) {
-    if (k2 === undefined) k2 = k;
-    Object.defineProperty(o, k2, { enumerable: true, get: function() { return m[k]; } });
-}) : (function(o, m, k, k2) {
-    if (k2 === undefined) k2 = k;
-    o[k2] = m[k];
-}));
-var __setModuleDefault = (this && this.__setModuleDefault) || (Object.create ? (function(o, v) {
-    Object.defineProperty(o, "default", { enumerable: true, value: v });
-}) : function(o, v) {
-    o["default"] = v;
-});
-var __importStar = (this && this.__importStar) || function (mod) {
-    if (mod && mod.__esModule) return mod;
-    var result = {};
-    if (mod != null) for (var k in mod) if (k !== "default" && Object.prototype.hasOwnProperty.call(mod, k)) __createBinding(result, mod, k);
-    __setModuleDefault(result, mod);
-    return result;
-};
-Object.defineProperty(exports, "__esModule", ({ value: true }));
-exports.createTracerProvider = void 0;
-const grpc = __importStar(__nccwpck_require__(7025));
-const sdk_trace_base_1 = __nccwpck_require__(29253);
-const exporter_trace_otlp_grpc_1 = __nccwpck_require__(60160);
-const exporter_trace_otlp_proto_1 = __nccwpck_require__(97859);
-const semantic_conventions_1 = __nccwpck_require__(67275);
-const resources_1 = __nccwpck_require__(3871);
-const OTEL_CONSOLE_ONLY = process.env.OTEL_CONSOLE_ONLY === "true";
-function stringToHeader(value) {
-    const pairs = value.split(",");
-    return pairs.reduce((result, item) => {
-        const [key, value] = item.split("=");
-        if (key && value) {
-            return {
-                ...result,
-                [key.trim()]: value.trim(),
-            };
-        }
-        // istanbul ignore next
-        return result;
-    }, {});
-}
-function isHttpEndpoint(endpoint) {
-    return endpoint.startsWith("https://");
-}
-function createTracerProvider(otlpEndpoint, otlpHeaders, workflowRunJobs, otelServiceName) {
-    const serviceName = otelServiceName ||
-        workflowRunJobs.workflowRun.name ||
-        `${workflowRunJobs.workflowRun.workflow_id}`;
-    const serviceInstanceId = [
-        workflowRunJobs.workflowRun.repository.full_name,
-        workflowRunJobs.workflowRun.workflow_id,
-        workflowRunJobs.workflowRun.id,
-        workflowRunJobs.workflowRun.run_attempt,
-    ].join("/");
-    const serviceNamespace = workflowRunJobs.workflowRun.repository.full_name;
-    const serviceVersion = workflowRunJobs.workflowRun.head_sha;
-    const provider = new sdk_trace_base_1.BasicTracerProvider({
-        resource: new resources_1.Resource({
-            [semantic_conventions_1.SemanticResourceAttributes.SERVICE_NAME]: serviceName,
-            [semantic_conventions_1.SemanticResourceAttributes.SERVICE_INSTANCE_ID]: serviceInstanceId,
-            [semantic_conventions_1.SemanticResourceAttributes.SERVICE_NAMESPACE]: serviceNamespace,
-            [semantic_conventions_1.SemanticResourceAttributes.SERVICE_VERSION]: serviceVersion,
-        }),
-    });
-    let exporter = new sdk_trace_base_1.ConsoleSpanExporter();
-    if (!OTEL_CONSOLE_ONLY) {
-        if (isHttpEndpoint(otlpEndpoint)) {
-            exporter = new exporter_trace_otlp_proto_1.OTLPTraceExporter({
-                url: otlpEndpoint,
-                headers: stringToHeader(otlpHeaders),
-            });
-        }
-        else {
-            exporter = new exporter_trace_otlp_grpc_1.OTLPTraceExporter({
-                url: otlpEndpoint,
-                credentials: grpc.credentials.createSsl(),
-                metadata: grpc.Metadata.fromHttp2Headers(stringToHeader(otlpHeaders)),
-            });
-        }
-    }
-    provider.addSpanProcessor(new sdk_trace_base_1.BatchSpanProcessor(exporter));
-    provider.register();
-    return provider;
-}
-exports.createTracerProvider = createTracerProvider;
-
-
-/***/ }),
-
 /***/ 52605:
 /***/ ((__unused_webpack_module, exports, __nccwpck_require__) => {
 
@@ -45129,7 +44299,7 @@ function setup(env) {
 			namespaces = split[i].replace(/\*/g, '.*?');
 
 			if (namespaces[0] === '-') {
-				createDebug.skips.push(new RegExp('^' + namespaces.substr(1) + '$'));
+				createDebug.skips.push(new RegExp('^' + namespaces.slice(1) + '$'));
 			} else {
 				createDebug.names.push(new RegExp('^' + namespaces + '$'));
 			}
@@ -56582,7 +55752,7 @@ module.exports = pako;
 
 
 
-var zlib_deflate = __nccwpck_require__(70978);
+var zlib_deflate = __nccwpck_require__(88278);
 var utils        = __nccwpck_require__(5483);
 var strings      = __nccwpck_require__(42380);
 var msg          = __nccwpck_require__(1890);
@@ -57924,7 +57094,7 @@ module.exports = crc32;
 
 /***/ }),
 
-/***/ 70978:
+/***/ 88278:
 /***/ ((__unused_webpack_module, exports, __nccwpck_require__) => {
 
 "use strict";
@@ -79913,6 +79083,859 @@ function wrappy (fn, cb) {
 
 /***/ }),
 
+/***/ 70978:
+/***/ (function(__unused_webpack_module, exports, __nccwpck_require__) {
+
+"use strict";
+
+var __createBinding = (this && this.__createBinding) || (Object.create ? (function(o, m, k, k2) {
+    if (k2 === undefined) k2 = k;
+    var desc = Object.getOwnPropertyDescriptor(m, k);
+    if (!desc || ("get" in desc ? !m.__esModule : desc.writable || desc.configurable)) {
+      desc = { enumerable: true, get: function() { return m[k]; } };
+    }
+    Object.defineProperty(o, k2, desc);
+}) : (function(o, m, k, k2) {
+    if (k2 === undefined) k2 = k;
+    o[k2] = m[k];
+}));
+var __setModuleDefault = (this && this.__setModuleDefault) || (Object.create ? (function(o, v) {
+    Object.defineProperty(o, "default", { enumerable: true, value: v });
+}) : function(o, v) {
+    o["default"] = v;
+});
+var __importStar = (this && this.__importStar) || function (mod) {
+    if (mod && mod.__esModule) return mod;
+    var result = {};
+    if (mod != null) for (var k in mod) if (k !== "default" && Object.prototype.hasOwnProperty.call(mod, k)) __createBinding(result, mod, k);
+    __setModuleDefault(result, mod);
+    return result;
+};
+var __importDefault = (this && this.__importDefault) || function (mod) {
+    return (mod && mod.__esModule) ? mod : { "default": mod };
+};
+Object.defineProperty(exports, "__esModule", ({ value: true }));
+exports.getWorkflowRunJobs = exports.listWorkflowRunArtifacts = void 0;
+const core = __importStar(__nccwpck_require__(42186));
+const axios_1 = __importDefault(__nccwpck_require__(96545));
+const JSZip = __importStar(__nccwpck_require__(83592));
+const fs = __importStar(__nccwpck_require__(57147));
+const artifact = __importStar(__nccwpck_require__(52605));
+const path = __importStar(__nccwpck_require__(71017));
+async function listWorkflowRunArtifacts(context, octokit, runId) {
+    let artifactsLookup = {};
+    /* istanbul ignore if */
+    if (runId === context.runId) {
+        artifactsLookup = await getSelfArtifactMap();
+    }
+    else {
+        artifactsLookup = await getWorkflowRunArtifactMap(context, octokit, runId);
+    }
+    return (jobName, stepName) => {
+        try {
+            return artifactsLookup[jobName][stepName];
+        }
+        catch (e) {
+            /* istanbul ignore next */
+            return undefined;
+        }
+    };
+}
+exports.listWorkflowRunArtifacts = listWorkflowRunArtifacts;
+async function getWorkflowRunArtifactMap(context, octokit, runId) {
+    const artifactsList = [];
+    const pageSize = 100;
+    for (let page = 1, hasNext = true; hasNext; page++) {
+        const listArtifactsResponse = await octokit.rest.actions.listWorkflowRunArtifacts({
+            ...context.repo,
+            run_id: runId,
+            page,
+            per_page: pageSize,
+        });
+        artifactsList.push(...listArtifactsResponse.data.artifacts);
+        hasNext = artifactsList.length < listArtifactsResponse.data.total_count;
+    }
+    const artifactsLookup = await artifactsList.reduce(async (resultP, artifact) => {
+        const result = await resultP;
+        const match = artifact.name.match(/\{(?<jobName>.*)\}\{(?<stepName>.*)\}/);
+        const next = { ...result };
+        /* istanbul ignore next */
+        if (match?.groups?.jobName && match?.groups?.stepName) {
+            const { jobName, stepName } = match.groups;
+            core.debug(`Found Artifact for Job<${jobName}> Step<${stepName}>`);
+            if (!(jobName in next)) {
+                next[jobName] = {};
+            }
+            const downloadResponse = await octokit.rest.actions.downloadArtifact({
+                ...context.repo,
+                artifact_id: artifact.id,
+                archive_format: "zip",
+            });
+            const response = await (0, axios_1.default)({
+                method: "get",
+                url: downloadResponse.url,
+                responseType: "arraybuffer",
+            });
+            const buf = response.data;
+            const zip = await JSZip.loadAsync(buf);
+            const writeStream = fs.createWriteStream(`${artifact.name}.log`);
+            try {
+                zip.files[Object.keys(zip.files)[0]].nodeStream().pipe(writeStream);
+                await new Promise((fulfill) => writeStream.on("finish", fulfill));
+                core.debug(`Downloaded Artifact ${writeStream.path.toString()}`);
+                next[jobName][stepName] = {
+                    jobName,
+                    stepName,
+                    path: writeStream.path.toString(),
+                };
+            }
+            finally {
+                writeStream.close();
+            }
+        }
+        return next;
+    }, Promise.resolve({}));
+    return artifactsLookup;
+}
+/* istanbul ignore next */
+async function getSelfArtifactMap() {
+    const client = artifact.create();
+    const responses = await client.downloadAllArtifacts();
+    const artifactsMap = responses.reduce((result, { artifactName, downloadPath }) => {
+        const next = { ...result };
+        const match = artifactName.match(/\{(?<jobName>.*)\}\{(?<stepName>.*)\}/);
+        if (match?.groups?.jobName && match?.groups?.stepName) {
+            const { jobName, stepName } = match.groups;
+            core.debug(`Found Artifact for Job<${jobName}> Step<${stepName}>`);
+            if (!(jobName in next)) {
+                next[jobName] = {};
+            }
+            const artifactDirFiles = fs.readdirSync(downloadPath);
+            if (artifactDirFiles && artifactDirFiles.length > 0) {
+                next[jobName][stepName] = {
+                    jobName,
+                    stepName,
+                    path: path.join(downloadPath, artifactDirFiles[0]),
+                };
+            }
+        }
+        return next;
+    }, {});
+    return artifactsMap;
+}
+// TODO add test coverage
+/* istanbul ignore next */
+async function listJobsForWorkflowRun(context, octokit, runId) {
+    const jobs = [];
+    const pageSize = 100;
+    for (let page = 1, hasNext = true; hasNext; page++) {
+        const listJobsForWorkflowRunResponse = await octokit.rest.actions.listJobsForWorkflowRun({
+            ...context.repo,
+            run_id: runId,
+            filter: "latest", // risk of missing a run if re-run happens between Action trigger and this query
+            page,
+            per_page: pageSize,
+        });
+        jobs.push(...listJobsForWorkflowRunResponse.data.jobs);
+        hasNext = jobs.length < listJobsForWorkflowRunResponse.data.total_count;
+    }
+    return jobs;
+}
+// TODO add test coverage
+/* istanbul ignore next */
+async function getWorkflowRunJobs(context, octokit, runId) {
+    const getWorkflowRunResponse = await octokit.rest.actions.getWorkflowRun({
+        ...context.repo,
+        run_id: runId,
+    });
+    const workflowRunArtifacts = await listWorkflowRunArtifacts(context, octokit, runId);
+    const jobs = await listJobsForWorkflowRun(context, octokit, runId);
+    const workflowRunJobs = {
+        workflowRun: getWorkflowRunResponse.data,
+        jobs,
+        workflowRunArtifacts,
+    };
+    return workflowRunJobs;
+}
+exports.getWorkflowRunJobs = getWorkflowRunJobs;
+
+
+/***/ }),
+
+/***/ 6144:
+/***/ (function(__unused_webpack_module, exports, __nccwpck_require__) {
+
+"use strict";
+
+var __createBinding = (this && this.__createBinding) || (Object.create ? (function(o, m, k, k2) {
+    if (k2 === undefined) k2 = k;
+    var desc = Object.getOwnPropertyDescriptor(m, k);
+    if (!desc || ("get" in desc ? !m.__esModule : desc.writable || desc.configurable)) {
+      desc = { enumerable: true, get: function() { return m[k]; } };
+    }
+    Object.defineProperty(o, k2, desc);
+}) : (function(o, m, k, k2) {
+    if (k2 === undefined) k2 = k;
+    o[k2] = m[k];
+}));
+var __setModuleDefault = (this && this.__setModuleDefault) || (Object.create ? (function(o, v) {
+    Object.defineProperty(o, "default", { enumerable: true, value: v });
+}) : function(o, v) {
+    o["default"] = v;
+});
+var __importStar = (this && this.__importStar) || function (mod) {
+    if (mod && mod.__esModule) return mod;
+    var result = {};
+    if (mod != null) for (var k in mod) if (k !== "default" && Object.prototype.hasOwnProperty.call(mod, k)) __createBinding(result, mod, k);
+    __setModuleDefault(result, mod);
+    return result;
+};
+Object.defineProperty(exports, "__esModule", ({ value: true }));
+const runner_1 = __nccwpck_require__(63878);
+const core = __importStar(__nccwpck_require__(42186));
+(0, runner_1.run)().catch((error) => {
+    core.setFailed(error.message);
+});
+
+
+/***/ }),
+
+/***/ 63878:
+/***/ (function(__unused_webpack_module, exports, __nccwpck_require__) {
+
+"use strict";
+
+var __createBinding = (this && this.__createBinding) || (Object.create ? (function(o, m, k, k2) {
+    if (k2 === undefined) k2 = k;
+    var desc = Object.getOwnPropertyDescriptor(m, k);
+    if (!desc || ("get" in desc ? !m.__esModule : desc.writable || desc.configurable)) {
+      desc = { enumerable: true, get: function() { return m[k]; } };
+    }
+    Object.defineProperty(o, k2, desc);
+}) : (function(o, m, k, k2) {
+    if (k2 === undefined) k2 = k;
+    o[k2] = m[k];
+}));
+var __setModuleDefault = (this && this.__setModuleDefault) || (Object.create ? (function(o, v) {
+    Object.defineProperty(o, "default", { enumerable: true, value: v });
+}) : function(o, v) {
+    o["default"] = v;
+});
+var __importStar = (this && this.__importStar) || function (mod) {
+    if (mod && mod.__esModule) return mod;
+    var result = {};
+    if (mod != null) for (var k in mod) if (k !== "default" && Object.prototype.hasOwnProperty.call(mod, k)) __createBinding(result, mod, k);
+    __setModuleDefault(result, mod);
+    return result;
+};
+Object.defineProperty(exports, "__esModule", ({ value: true }));
+exports.run = void 0;
+const github = __importStar(__nccwpck_require__(95438));
+const core = __importStar(__nccwpck_require__(42186));
+const github_1 = __nccwpck_require__(70978);
+const tracing_1 = __nccwpck_require__(21270);
+async function run() {
+    const ghContext = github.context;
+    const otlpEndpoint = core.getInput("otlpEndpoint");
+    const otlpHeaders = core.getInput("otlpHeaders");
+    const otelServiceName = core.getInput("otelServiceName") || process.env.OTEL_SERVICE_NAME || "";
+    const runId = parseInt(core.getInput("runId") || `${ghContext.runId}`);
+    const ghToken = core.getInput("githubToken") || process.env.GITHUB_TOKEN || "";
+    const octokit = github.getOctokit(ghToken);
+    core.info(`Get Workflow Run Jobs for ${runId}`);
+    const workflowRunJobs = await (0, github_1.getWorkflowRunJobs)(ghContext, octokit, runId);
+    core.info(`Create Trace Provider for ${otlpEndpoint}`);
+    const provider = (0, tracing_1.createTracerProvider)(otlpEndpoint, otlpHeaders, workflowRunJobs, otelServiceName);
+    try {
+        core.info(`Trace Workflow Run Jobs for ${runId} and export to ${otlpEndpoint}`);
+        const spanContext = await (0, tracing_1.traceWorkflowRunJobs)({
+            provider,
+            workflowRunJobs,
+        });
+        core.setOutput("traceId", spanContext.traceId);
+    }
+    finally {
+        core.info("Shutdown Trace Provider");
+        setTimeout(() => {
+            provider
+                .shutdown()
+                .then(() => {
+                core.info("Provider shutdown");
+            })
+                .catch((error) => {
+                console.warn(error.message);
+            });
+        }, 2000);
+    }
+}
+exports.run = run;
+
+
+/***/ }),
+
+/***/ 21270:
+/***/ ((__unused_webpack_module, exports, __nccwpck_require__) => {
+
+"use strict";
+
+Object.defineProperty(exports, "__esModule", ({ value: true }));
+exports.createTracerProvider = exports.traceWorkflowRunJobs = void 0;
+var job_1 = __nccwpck_require__(88893);
+Object.defineProperty(exports, "traceWorkflowRunJobs", ({ enumerable: true, get: function () { return job_1.traceWorkflowRunJobs; } }));
+var trace_1 = __nccwpck_require__(32184);
+Object.defineProperty(exports, "createTracerProvider", ({ enumerable: true, get: function () { return trace_1.createTracerProvider; } }));
+
+
+/***/ }),
+
+/***/ 88893:
+/***/ (function(__unused_webpack_module, exports, __nccwpck_require__) {
+
+"use strict";
+
+var __createBinding = (this && this.__createBinding) || (Object.create ? (function(o, m, k, k2) {
+    if (k2 === undefined) k2 = k;
+    var desc = Object.getOwnPropertyDescriptor(m, k);
+    if (!desc || ("get" in desc ? !m.__esModule : desc.writable || desc.configurable)) {
+      desc = { enumerable: true, get: function() { return m[k]; } };
+    }
+    Object.defineProperty(o, k2, desc);
+}) : (function(o, m, k, k2) {
+    if (k2 === undefined) k2 = k;
+    o[k2] = m[k];
+}));
+var __setModuleDefault = (this && this.__setModuleDefault) || (Object.create ? (function(o, v) {
+    Object.defineProperty(o, "default", { enumerable: true, value: v });
+}) : function(o, v) {
+    o["default"] = v;
+});
+var __importStar = (this && this.__importStar) || function (mod) {
+    if (mod && mod.__esModule) return mod;
+    var result = {};
+    if (mod != null) for (var k in mod) if (k !== "default" && Object.prototype.hasOwnProperty.call(mod, k)) __createBinding(result, mod, k);
+    __setModuleDefault(result, mod);
+    return result;
+};
+Object.defineProperty(exports, "__esModule", ({ value: true }));
+exports.traceWorkflowRunJobs = void 0;
+const api_1 = __nccwpck_require__(65163);
+const core = __importStar(__nccwpck_require__(42186));
+const step_1 = __nccwpck_require__(72675);
+async function traceWorkflowRunJobs({ provider, workflowRunJobs, }) {
+    const tracer = provider.getTracer("otel-cicd-action");
+    const startTime = new Date(workflowRunJobs.workflowRun.run_started_at ||
+        workflowRunJobs.workflowRun.created_at);
+    let headRef = undefined;
+    let baseRef = undefined;
+    let baseSha = undefined;
+    let pull_requests = {};
+    if (workflowRunJobs.workflowRun.pull_requests &&
+        workflowRunJobs.workflowRun.pull_requests.length > 0) {
+        headRef = workflowRunJobs.workflowRun.pull_requests[0].head?.ref;
+        baseRef = workflowRunJobs.workflowRun.pull_requests[0].base?.ref;
+        baseSha = workflowRunJobs.workflowRun.pull_requests[0].base?.sha;
+        pull_requests = workflowRunJobs.workflowRun.pull_requests.reduce((result, pr, idx) => {
+            const prefix = `github.pull_requests.${idx}`;
+            return {
+                ...result,
+                [`${prefix}.id`]: pr.id,
+                [`${prefix}.url`]: pr.url,
+                [`${prefix}.number`]: pr.number,
+                [`${prefix}.head.sha`]: pr.head.sha,
+                [`${prefix}.head.ref`]: pr.head.ref,
+                [`${prefix}.head.repo.id`]: pr.head.repo.id,
+                [`${prefix}.head.repo.url`]: pr.head.repo.url,
+                [`${prefix}.head.repo.name`]: pr.head.repo.name,
+                [`${prefix}.base.ref`]: pr.base.ref,
+                [`${prefix}.base.sha`]: pr.base.sha,
+                [`${prefix}.base.repo.id`]: pr.base.repo.id,
+                [`${prefix}.base.repo.url`]: pr.base.repo.url,
+                [`${prefix}.base.repo.name`]: pr.base.repo.name,
+            };
+        }, {});
+    }
+    const rootSpan = tracer.startSpan(workflowRunJobs.workflowRun.name ||
+        `${workflowRunJobs.workflowRun.workflow_id}`, {
+        attributes: {
+            "github.workflow_id": workflowRunJobs.workflowRun.workflow_id,
+            "github.run_id": workflowRunJobs.workflowRun.id,
+            "github.run_number": workflowRunJobs.workflowRun.run_number,
+            "github.run_attempt": workflowRunJobs.workflowRun.run_attempt || 1,
+            "github.html_url": workflowRunJobs.workflowRun.html_url,
+            "github.workflow_url": workflowRunJobs.workflowRun.workflow_url,
+            "github.event": workflowRunJobs.workflowRun.event,
+            "github.workflow": workflowRunJobs.workflowRun.name || undefined,
+            "github.conclusion": workflowRunJobs.workflowRun.conclusion || undefined,
+            "github.created_at": workflowRunJobs.workflowRun.created_at,
+            "github.updated_at": workflowRunJobs.workflowRun.updated_at,
+            "github.run_started_at": workflowRunJobs.workflowRun.run_started_at,
+            "github.author_name": workflowRunJobs.workflowRun.head_commit?.author?.name || undefined,
+            "github.author_email": workflowRunJobs.workflowRun.head_commit?.author?.email || undefined,
+            "github.head_commit.id": workflowRunJobs.workflowRun.head_commit?.id || undefined,
+            "github.head_commit.tree_id": workflowRunJobs.workflowRun.head_commit?.tree_id || undefined,
+            "github.head_commit.author.name": workflowRunJobs.workflowRun.head_commit?.author?.email || undefined,
+            "github.head_commit.author.email": workflowRunJobs.workflowRun.head_commit?.author?.email || undefined,
+            "github.head_commit.committer.name": workflowRunJobs.workflowRun.head_commit?.committer?.email ||
+                undefined,
+            "github.head_commit.committer.email": workflowRunJobs.workflowRun.head_commit?.committer?.email ||
+                undefined,
+            "github.head_commit.message": workflowRunJobs.workflowRun.head_commit?.message || undefined,
+            "github.head_commit.timestamp": workflowRunJobs.workflowRun.head_commit?.timestamp || undefined,
+            "github.head_sha": workflowRunJobs.workflowRun.head_sha,
+            "github.head_ref": headRef,
+            "github.base_ref": baseRef,
+            "github.base_sha": baseSha,
+            error: workflowRunJobs.workflowRun.conclusion === "failure",
+            ...pull_requests,
+        },
+        root: true,
+        startTime,
+    }, api_1.ROOT_CONTEXT);
+    core.debug(`TraceID: ${rootSpan.spanContext().traceId}`);
+    let code = api_1.SpanStatusCode.OK;
+    if (workflowRunJobs.workflowRun.conclusion === "failure") {
+        code = api_1.SpanStatusCode.ERROR;
+    }
+    rootSpan.setStatus({ code });
+    core.debug(`Root Span: ${rootSpan.spanContext().traceId}: ${workflowRunJobs.workflowRun.created_at}`);
+    try {
+        if (workflowRunJobs.jobs.length > 0) {
+            const firstJob = workflowRunJobs.jobs[0];
+            const queueCtx = api_1.trace.setSpan(api_1.ROOT_CONTEXT, rootSpan);
+            const queueSpan = tracer.startSpan("Queued", { startTime }, queueCtx);
+            queueSpan.end(new Date(firstJob.started_at));
+        }
+        for (let i = 0; i < workflowRunJobs.jobs.length; i++) {
+            const job = workflowRunJobs.jobs[i];
+            await traceWorkflowRunJob({
+                parentSpan: rootSpan,
+                parentContext: api_1.ROOT_CONTEXT,
+                trace: api_1.trace,
+                tracer,
+                job,
+                workflowArtifacts: workflowRunJobs.workflowRunArtifacts,
+            });
+        }
+    }
+    finally {
+        rootSpan.end(new Date(workflowRunJobs.workflowRun.updated_at));
+    }
+    return rootSpan.spanContext();
+}
+exports.traceWorkflowRunJobs = traceWorkflowRunJobs;
+async function traceWorkflowRunJob({ parentContext, trace, parentSpan, tracer, job, workflowArtifacts, }) {
+    core.debug(`Trace Job ${job.id}`);
+    if (!job.completed_at) {
+        console.warn(`Job ${job.id} is not completed yet`);
+        return;
+    }
+    job.name;
+    const ctx = trace.setSpan(parentContext, parentSpan);
+    const startTime = new Date(job.started_at);
+    const completedTime = new Date(job.completed_at);
+    const span = tracer.startSpan(job.name, {
+        attributes: {
+            "github.job.id": job.id,
+            "github.job.name": job.name,
+            "github.job.run_id": job.run_id,
+            "github.job.run_attempt": job.run_attempt || 1,
+            "github.job.runner_group_id": job.runner_group_id || undefined,
+            "github.job.runner_group_name": job.runner_group_name || undefined,
+            "github.job.runner_name": job.runner_name || undefined,
+            "github.job.conclusion": job.conclusion || undefined,
+            "github.job.labels": job.labels.join(", ") || undefined,
+            "github.job.started_at": job.started_at || undefined,
+            "github.job.completed_at": job.completed_at || undefined,
+            "github.conclusion": job.conclusion || undefined,
+            error: job.conclusion === "failure",
+        },
+        startTime,
+    }, ctx);
+    const spanId = span.spanContext().spanId;
+    core.debug(`Job Span<${spanId}>: Started<${job.started_at}>`);
+    try {
+        let code = api_1.SpanStatusCode.OK;
+        if (job.conclusion === "failure") {
+            code = api_1.SpanStatusCode.ERROR;
+        }
+        span.setStatus({ code });
+        const numSteps = job.steps?.length || 0;
+        core.debug(`Trace ${numSteps} Steps`);
+        if (job.steps !== undefined) {
+            for (let i = 0; i < job.steps.length; i++) {
+                const step = job.steps[i];
+                await (0, step_1.traceWorkflowRunStep)({
+                    job,
+                    parentContext: ctx,
+                    trace,
+                    parentSpan: span,
+                    tracer,
+                    workflowArtifacts,
+                    step,
+                });
+            }
+        }
+    }
+    finally {
+        core.debug(`Job Span<${spanId}>: Ended<${job.completed_at}>`);
+        // Some skipped and post jobs return completed_at dates that are older than started_at
+        span.end(new Date(Math.max(startTime.getTime(), completedTime.getTime())));
+    }
+}
+
+
+/***/ }),
+
+/***/ 72675:
+/***/ (function(__unused_webpack_module, exports, __nccwpck_require__) {
+
+"use strict";
+
+var __createBinding = (this && this.__createBinding) || (Object.create ? (function(o, m, k, k2) {
+    if (k2 === undefined) k2 = k;
+    var desc = Object.getOwnPropertyDescriptor(m, k);
+    if (!desc || ("get" in desc ? !m.__esModule : desc.writable || desc.configurable)) {
+      desc = { enumerable: true, get: function() { return m[k]; } };
+    }
+    Object.defineProperty(o, k2, desc);
+}) : (function(o, m, k, k2) {
+    if (k2 === undefined) k2 = k;
+    o[k2] = m[k];
+}));
+var __setModuleDefault = (this && this.__setModuleDefault) || (Object.create ? (function(o, v) {
+    Object.defineProperty(o, "default", { enumerable: true, value: v });
+}) : function(o, v) {
+    o["default"] = v;
+});
+var __importStar = (this && this.__importStar) || function (mod) {
+    if (mod && mod.__esModule) return mod;
+    var result = {};
+    if (mod != null) for (var k in mod) if (k !== "default" && Object.prototype.hasOwnProperty.call(mod, k)) __createBinding(result, mod, k);
+    __setModuleDefault(result, mod);
+    return result;
+};
+Object.defineProperty(exports, "__esModule", ({ value: true }));
+exports.traceWorkflowRunStep = void 0;
+const core = __importStar(__nccwpck_require__(42186));
+const api_1 = __nccwpck_require__(65163);
+const trace_otlp_file_1 = __nccwpck_require__(83313);
+async function traceWorkflowRunStep({ job, parentContext, parentSpan, trace, tracer, workflowArtifacts, step, }) {
+    if (!step || !step.completed_at || !step.started_at) {
+        const stepName = step?.name || "UNDEFINED";
+        console.warn(`Step ${stepName} is not completed yet.`);
+        return;
+    }
+    if (step.conclusion == "cancelled" || step.conclusion == "skipped") {
+        console.info(`Step ${step.name} did not run.`);
+        return;
+    }
+    core.debug(`Trace Step ${step.name}`);
+    const ctx = trace.setSpan(parentContext, parentSpan);
+    const startTime = new Date(step.started_at);
+    const completedTime = new Date(step.completed_at);
+    const span = tracer.startSpan(step.name, {
+        attributes: {
+            "github.job.step.name": step.name,
+            "github.job.step.number": step.number,
+            "github.job.step.started_at": step.started_at || undefined,
+            "github.job.step.completed_at": step.completed_at || undefined,
+            "github.job.step.id": step.id,
+            error: step.conclusion === "failure",
+        },
+        startTime,
+    }, ctx);
+    const spanId = span.spanContext().spanId;
+    try {
+        span.setStatus({ code: api_1.SpanStatusCode.ERROR });
+        if (step.conclusion !== "failure") {
+            span.setStatus({ code: api_1.SpanStatusCode.OK });
+        }
+        core.debug(`Step Span<${spanId}>: Started<${step.started_at}>`);
+        if (step.conclusion) {
+            span.setAttribute("github.job.step.conclusion", step.conclusion);
+        }
+        await traceArtifact({
+            tracer,
+            parentSpan: span,
+            job,
+            step,
+            startTime,
+            workflowArtifacts,
+        });
+    }
+    finally {
+        core.debug(`Step Span<${spanId}>: Ended<${step.completed_at}>`);
+        // Some skipped and post jobs return completed_at dates that are older than started_at
+        span.end(new Date(Math.max(startTime.getTime(), completedTime.getTime())));
+    }
+}
+exports.traceWorkflowRunStep = traceWorkflowRunStep;
+async function traceArtifact({ tracer, parentSpan, job, step, startTime, workflowArtifacts, }) {
+    const artifact = workflowArtifacts(job.name, step.name);
+    if (artifact) {
+        core.debug(`Found Artifact ${artifact?.path}`);
+        await (0, trace_otlp_file_1.traceOTLPFile)({
+            tracer,
+            parentSpan,
+            startTime,
+            path: artifact.path,
+        });
+    }
+    else {
+        core.debug(`No Artifact to trace for Job<${job.name}> Step<${step.name}>`);
+    }
+}
+
+
+/***/ }),
+
+/***/ 83313:
+/***/ (function(__unused_webpack_module, exports, __nccwpck_require__) {
+
+"use strict";
+
+var __createBinding = (this && this.__createBinding) || (Object.create ? (function(o, m, k, k2) {
+    if (k2 === undefined) k2 = k;
+    var desc = Object.getOwnPropertyDescriptor(m, k);
+    if (!desc || ("get" in desc ? !m.__esModule : desc.writable || desc.configurable)) {
+      desc = { enumerable: true, get: function() { return m[k]; } };
+    }
+    Object.defineProperty(o, k2, desc);
+}) : (function(o, m, k, k2) {
+    if (k2 === undefined) k2 = k;
+    o[k2] = m[k];
+}));
+var __setModuleDefault = (this && this.__setModuleDefault) || (Object.create ? (function(o, v) {
+    Object.defineProperty(o, "default", { enumerable: true, value: v });
+}) : function(o, v) {
+    o["default"] = v;
+});
+var __importStar = (this && this.__importStar) || function (mod) {
+    if (mod && mod.__esModule) return mod;
+    var result = {};
+    if (mod != null) for (var k in mod) if (k !== "default" && Object.prototype.hasOwnProperty.call(mod, k)) __createBinding(result, mod, k);
+    __setModuleDefault(result, mod);
+    return result;
+};
+Object.defineProperty(exports, "__esModule", ({ value: true }));
+exports.traceOTLPFile = void 0;
+const sdk_trace_base_1 = __nccwpck_require__(29253);
+const core_1 = __nccwpck_require__(89736);
+const exporter_trace_otlp_http_1 = __nccwpck_require__(35401);
+const core = __importStar(__nccwpck_require__(42186));
+const fs = __importStar(__nccwpck_require__(57147));
+const readline = __importStar(__nccwpck_require__(14521));
+const api = __importStar(__nccwpck_require__(65163));
+/* istanbul ignore next */
+function toSpanKind(spanKind) {
+    switch (spanKind) {
+        /* istanbul ignore next */
+        case exporter_trace_otlp_http_1.otlpTypes.opentelemetryProto.trace.v1.Span.SpanKind.SPAN_KIND_CLIENT:
+            return api.SpanKind.CLIENT;
+        /* istanbul ignore next */
+        case exporter_trace_otlp_http_1.otlpTypes.opentelemetryProto.trace.v1.Span.SpanKind.SPAN_KIND_CONSUMER:
+            return api.SpanKind.CONSUMER;
+        case exporter_trace_otlp_http_1.otlpTypes.opentelemetryProto.trace.v1.Span.SpanKind.SPAN_KIND_INTERNAL:
+            return api.SpanKind.INTERNAL;
+        /* istanbul ignore next */
+        case exporter_trace_otlp_http_1.otlpTypes.opentelemetryProto.trace.v1.Span.SpanKind.SPAN_KIND_PRODUCER:
+            return api.SpanKind.PRODUCER;
+        /* istanbul ignore next */
+        case exporter_trace_otlp_http_1.otlpTypes.opentelemetryProto.trace.v1.Span.SpanKind.SPAN_KIND_SERVER:
+            return api.SpanKind.SERVER;
+        /* istanbul ignore next */
+        default:
+            return api.SpanKind.INTERNAL;
+    }
+}
+function toLinks(links) {
+    /* istanbul ignore if */
+    if (links === undefined) {
+        return undefined;
+    }
+    // TODO implement Links
+}
+function toAttributeValue(value) {
+    /* istanbul ignore else */
+    if ("stringValue" in value) {
+        return value.stringValue;
+    }
+    else if ("arrayValue" in value) {
+        return JSON.stringify(value.arrayValue?.values);
+    }
+    else if ("boolValue" in value) {
+        return value.boolValue;
+    }
+    else if ("doubleValue" in value) {
+        return value.doubleValue;
+    }
+    else if ("intValue" in value) {
+        return value.intValue;
+    }
+    else if ("kvlistValue" in value) {
+        return JSON.stringify(value.kvlistValue?.values.reduce((result, { key, value }) => {
+            return { ...result, [key]: toAttributeValue(value) };
+        }, {}));
+    }
+    /* istanbul ignore next */
+    return undefined;
+}
+function toAttributes(attributes) {
+    /* istanbul ignore if */
+    if (!attributes) {
+        return {};
+    }
+    const rv = attributes.reduce((result, { key, value }) => {
+        return { ...result, [key]: toAttributeValue(value) };
+    }, {});
+    return rv;
+}
+function toSpan({ otlpSpan, tracer, parentSpan }) {
+    return new sdk_trace_base_1.Span(tracer, api.context.active(), otlpSpan.name, {
+        traceId: parentSpan.spanContext().traceId,
+        spanId: otlpSpan.spanId,
+        traceFlags: parentSpan.spanContext().traceFlags,
+        traceState: new core_1.TraceState(otlpSpan.traceState),
+    }, toSpanKind(otlpSpan.kind), otlpSpan.parentSpanId || parentSpan.spanContext().spanId, toLinks(otlpSpan.links), new Date(otlpSpan.startTimeUnixNano / 1000000));
+}
+async function traceOTLPFile({ tracer, parentSpan, path, }) {
+    const fileStream = fs.createReadStream(path);
+    const rl = readline.createInterface({
+        input: fileStream,
+        crlfDelay: Infinity,
+    });
+    for await (const line of rl) {
+        if (line) {
+            const serviceRequest = JSON.parse(line);
+            for (const resourceSpans of serviceRequest.resourceSpans) {
+                for (const libSpans of resourceSpans.instrumentationLibrarySpans) {
+                    if (libSpans.instrumentationLibrary) {
+                        for (const otlpSpan of libSpans.spans) {
+                            core.debug(`Trace Test ParentSpan<${otlpSpan.parentSpanId || parentSpan.spanContext().spanId}> -> Span<${otlpSpan.spanId}> `);
+                            const span = toSpan({
+                                otlpSpan,
+                                tracer,
+                                parentSpan,
+                            });
+                            const attributes = toAttributes(otlpSpan.attributes);
+                            if (attributes) {
+                                span.setAttributes(attributes);
+                            }
+                            if (otlpSpan.status) {
+                                span.setStatus(otlpSpan.status);
+                            }
+                            span.end(new Date(otlpSpan.endTimeUnixNano / 1000000));
+                        }
+                    }
+                }
+            }
+        }
+    }
+}
+exports.traceOTLPFile = traceOTLPFile;
+
+
+/***/ }),
+
+/***/ 32184:
+/***/ (function(__unused_webpack_module, exports, __nccwpck_require__) {
+
+"use strict";
+
+var __createBinding = (this && this.__createBinding) || (Object.create ? (function(o, m, k, k2) {
+    if (k2 === undefined) k2 = k;
+    var desc = Object.getOwnPropertyDescriptor(m, k);
+    if (!desc || ("get" in desc ? !m.__esModule : desc.writable || desc.configurable)) {
+      desc = { enumerable: true, get: function() { return m[k]; } };
+    }
+    Object.defineProperty(o, k2, desc);
+}) : (function(o, m, k, k2) {
+    if (k2 === undefined) k2 = k;
+    o[k2] = m[k];
+}));
+var __setModuleDefault = (this && this.__setModuleDefault) || (Object.create ? (function(o, v) {
+    Object.defineProperty(o, "default", { enumerable: true, value: v });
+}) : function(o, v) {
+    o["default"] = v;
+});
+var __importStar = (this && this.__importStar) || function (mod) {
+    if (mod && mod.__esModule) return mod;
+    var result = {};
+    if (mod != null) for (var k in mod) if (k !== "default" && Object.prototype.hasOwnProperty.call(mod, k)) __createBinding(result, mod, k);
+    __setModuleDefault(result, mod);
+    return result;
+};
+Object.defineProperty(exports, "__esModule", ({ value: true }));
+exports.createTracerProvider = void 0;
+const grpc = __importStar(__nccwpck_require__(7025));
+const sdk_trace_base_1 = __nccwpck_require__(29253);
+const exporter_trace_otlp_grpc_1 = __nccwpck_require__(60160);
+const exporter_trace_otlp_proto_1 = __nccwpck_require__(97859);
+const semantic_conventions_1 = __nccwpck_require__(67275);
+const resources_1 = __nccwpck_require__(3871);
+const OTEL_CONSOLE_ONLY = process.env.OTEL_CONSOLE_ONLY === "true";
+function stringToHeader(value) {
+    const pairs = value.split(",");
+    return pairs.reduce((result, item) => {
+        const [key, value] = item.split("=");
+        if (key && value) {
+            return {
+                ...result,
+                [key.trim()]: value.trim(),
+            };
+        }
+        // istanbul ignore next
+        return result;
+    }, {});
+}
+function isHttpEndpoint(endpoint) {
+    return endpoint.startsWith("https://");
+}
+function createTracerProvider(otlpEndpoint, otlpHeaders, workflowRunJobs, otelServiceName) {
+    const serviceName = otelServiceName ||
+        workflowRunJobs.workflowRun.name ||
+        `${workflowRunJobs.workflowRun.workflow_id}`;
+    const serviceInstanceId = [
+        workflowRunJobs.workflowRun.repository.full_name,
+        workflowRunJobs.workflowRun.workflow_id,
+        workflowRunJobs.workflowRun.id,
+        workflowRunJobs.workflowRun.run_attempt,
+    ].join("/");
+    const serviceNamespace = workflowRunJobs.workflowRun.repository.full_name;
+    const serviceVersion = workflowRunJobs.workflowRun.head_sha;
+    const provider = new sdk_trace_base_1.BasicTracerProvider({
+        resource: new resources_1.Resource({
+            [semantic_conventions_1.SemanticResourceAttributes.SERVICE_NAME]: serviceName,
+            [semantic_conventions_1.SemanticResourceAttributes.SERVICE_INSTANCE_ID]: serviceInstanceId,
+            [semantic_conventions_1.SemanticResourceAttributes.SERVICE_NAMESPACE]: serviceNamespace,
+            [semantic_conventions_1.SemanticResourceAttributes.SERVICE_VERSION]: serviceVersion,
+        }),
+    });
+    let exporter = new sdk_trace_base_1.ConsoleSpanExporter();
+    if (!OTEL_CONSOLE_ONLY) {
+        if (isHttpEndpoint(otlpEndpoint)) {
+            exporter = new exporter_trace_otlp_proto_1.OTLPTraceExporter({
+                url: otlpEndpoint,
+                headers: stringToHeader(otlpHeaders),
+            });
+        }
+        else {
+            exporter = new exporter_trace_otlp_grpc_1.OTLPTraceExporter({
+                url: otlpEndpoint,
+                credentials: grpc.credentials.createSsl(),
+                metadata: grpc.Metadata.fromHttp2Headers(stringToHeader(otlpHeaders)),
+            });
+        }
+    }
+    provider.addSpanProcessor(new sdk_trace_base_1.BatchSpanProcessor(exporter));
+    provider.register();
+    return provider;
+}
+exports.createTracerProvider = createTracerProvider;
+
+
+/***/ }),
+
 /***/ 22877:
 /***/ ((module) => {
 
@@ -80179,7 +80202,7 @@ module.exports = JSON.parse('[[[0,44],"disallowed_STD3_valid"],[[45,46],"valid"]
 /******/ 	// startup
 /******/ 	// Load entry module and return exports
 /******/ 	// This entry module is referenced by other modules so it can't be inlined
-/******/ 	var __webpack_exports__ = __nccwpck_require__(94822);
+/******/ 	var __webpack_exports__ = __nccwpck_require__(6144);
 /******/ 	module.exports = __webpack_exports__;
 /******/ 	
 /******/ })()

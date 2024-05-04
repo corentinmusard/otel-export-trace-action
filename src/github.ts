@@ -44,7 +44,7 @@ export type WorkflowArtifactDownload = {
 
 export type WorkflowArtifactLookup = (
   jobName: string,
-  stepName: string
+  stepName: string,
 ) => WorkflowArtifactDownload | undefined;
 
 export type WorkflowRunJobs = {
@@ -56,7 +56,7 @@ export type WorkflowRunJobs = {
 export async function listWorkflowRunArtifacts(
   context: Context,
   octokit: InstanceType<typeof GitHub>,
-  runId: number
+  runId: number,
 ): Promise<WorkflowArtifactLookup> {
   let artifactsLookup: WorkflowArtifactMap = {};
 
@@ -79,7 +79,7 @@ export async function listWorkflowRunArtifacts(
 async function getWorkflowRunArtifactMap(
   context: Context,
   octokit: InstanceType<typeof GitHub>,
-  runId: number
+  runId: number,
 ): Promise<WorkflowArtifactMap> {
   const artifactsList: WorkflowArtifact[] = [];
   const pageSize = 100;
@@ -100,7 +100,7 @@ async function getWorkflowRunArtifactMap(
     async (resultP, artifact) => {
       const result = await resultP;
       const match = artifact.name.match(
-        /\{(?<jobName>.*)\}\{(?<stepName>.*)\}/
+        /\{(?<jobName>.*)\}\{(?<stepName>.*)\}/,
       );
       const next: WorkflowArtifactMap = { ...result };
       /* istanbul ignore next */
@@ -140,7 +140,7 @@ async function getWorkflowRunArtifactMap(
 
       return next;
     },
-    Promise.resolve({})
+    Promise.resolve({}),
   );
   return artifactsLookup;
 }
@@ -171,7 +171,7 @@ async function getSelfArtifactMap(): Promise<WorkflowArtifactMap> {
       }
       return next;
     },
-    {}
+    {},
   );
 
   return artifactsMap;
@@ -182,7 +182,7 @@ async function getSelfArtifactMap(): Promise<WorkflowArtifactMap> {
 async function listJobsForWorkflowRun(
   context: Context,
   octokit: InstanceType<typeof GitHub>,
-  runId: number
+  runId: number,
 ): Promise<WorkflowRunJob[]> {
   const jobs: WorkflowRunJob[] = [];
   const pageSize = 100;
@@ -209,7 +209,7 @@ async function listJobsForWorkflowRun(
 export async function getWorkflowRunJobs(
   context: Context,
   octokit: InstanceType<typeof GitHub>,
-  runId: number
+  runId: number,
 ): Promise<WorkflowRunJobs> {
   const getWorkflowRunResponse: GetWorkflowRunType =
     await octokit.rest.actions.getWorkflowRun({
@@ -220,7 +220,7 @@ export async function getWorkflowRunJobs(
   const workflowRunArtifacts = await listWorkflowRunArtifacts(
     context,
     octokit,
-    runId
+    runId,
   );
   const jobs = await listJobsForWorkflowRun(context, octokit, runId);
 
