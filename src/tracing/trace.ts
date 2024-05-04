@@ -1,7 +1,7 @@
 import * as grpc from "@grpc/grpc-js";
 import {
   BasicTracerProvider,
-  SimpleSpanProcessor,
+  BatchSpanProcessor,
   ConsoleSpanExporter,
   SpanExporter,
 } from "@opentelemetry/sdk-trace-base";
@@ -79,7 +79,7 @@ export function createTracerProvider(
     }
   }
 
-  provider.addSpanProcessor(new SimpleSpanProcessor(exporter));
+  provider.addSpanProcessor(new BatchSpanProcessor(exporter));
   provider.register();
 
   return provider;

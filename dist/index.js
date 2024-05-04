@@ -830,7 +830,7 @@ function createTracerProvider(otlpEndpoint, otlpHeaders, workflowRunJobs, otelSe
             });
         }
     }
-    provider.addSpanProcessor(new sdk_trace_base_1.SimpleSpanProcessor(exporter));
+    provider.addSpanProcessor(new sdk_trace_base_1.BatchSpanProcessor(exporter));
     provider.register();
     return provider;
 }
