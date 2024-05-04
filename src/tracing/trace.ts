@@ -6,7 +6,7 @@ import {
   SpanExporter,
 } from "@opentelemetry/sdk-trace-base";
 import { OTLPTraceExporter } from "@opentelemetry/exporter-trace-otlp-grpc";
-import { OTLPTraceExporter as HttpOTLPTraceExporter } from "@opentelemetry/exporter-trace-otlp-http";
+import { OTLPTraceExporter as ProtoOTLPTraceExporter } from "@opentelemetry/exporter-trace-otlp-proto";
 import { SemanticResourceAttributes } from "@opentelemetry/semantic-conventions";
 import { WorkflowRunJobs } from "../github";
 import { Resource } from "@opentelemetry/resources";
@@ -31,7 +31,7 @@ function stringToHeader(value: string): StringDict {
 }
 
 function isHttpEndpoint(endpoint: string): boolean {
-  return endpoint.startsWith("http://") || endpoint.startsWith("https://");
+  return endpoint.startsWith("https://");
 }
 
 export function createTracerProvider(
@@ -66,7 +66,7 @@ export function createTracerProvider(
 
   if (!OTEL_CONSOLE_ONLY) {
     if (isHttpEndpoint(otlpEndpoint)) {
-      exporter = new HttpOTLPTraceExporter({
+      exporter = new ProtoOTLPTraceExporter({
         url: otlpEndpoint,
         headers: stringToHeader(otlpHeaders),
       });
