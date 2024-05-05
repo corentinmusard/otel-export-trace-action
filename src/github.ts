@@ -2,7 +2,6 @@ import { Context } from "@actions/github/lib/context";
 import { GitHub } from "@actions/github/lib/utils";
 import * as core from "@actions/core";
 import { RestEndpointMethodTypes } from "@octokit/plugin-rest-endpoint-methods";
-import axios from "axios";
 import * as JSZip from "jszip";
 import * as fs from "fs";
 import * as artifact from "@actions/artifact";
@@ -116,12 +115,8 @@ async function getWorkflowRunArtifactMap(
           archive_format: "zip",
         });
 
-        const response = await axios({
-          method: "get",
-          url: downloadResponse.url,
-          responseType: "arraybuffer",
-        });
-        const buf = response.data as Buffer;
+        const response = await fetch(downloadResponse.url);
+        const buf = await response.arrayBuffer();
         const zip = await JSZip.loadAsync(buf);
         const writeStream = fs.createWriteStream(`${artifact.name}.log`);
         try {

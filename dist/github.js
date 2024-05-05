@@ -22,13 +22,9 @@ var __importStar = (this && this.__importStar) || function (mod) {
     __setModuleDefault(result, mod);
     return result;
 };
-var __importDefault = (this && this.__importDefault) || function (mod) {
-    return (mod && mod.__esModule) ? mod : { "default": mod };
-};
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.getWorkflowRunJobs = exports.listWorkflowRunArtifacts = void 0;
 const core = __importStar(require("@actions/core"));
-const axios_1 = __importDefault(require("axios"));
 const JSZip = __importStar(require("jszip"));
 const fs = __importStar(require("fs"));
 const artifact = __importStar(require("@actions/artifact"));
@@ -82,12 +78,8 @@ async function getWorkflowRunArtifactMap(context, octokit, runId) {
                 artifact_id: artifact.id,
                 archive_format: "zip",
             });
-            const response = await (0, axios_1.default)({
-                method: "get",
-                url: downloadResponse.url,
-                responseType: "arraybuffer",
-            });
-            const buf = response.data;
+            const response = await fetch(downloadResponse.url);
+            const buf = await response.arrayBuffer();
             const zip = await JSZip.loadAsync(buf);
             const writeStream = fs.createWriteStream(`${artifact.name}.log`);
             try {

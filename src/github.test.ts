@@ -3,15 +3,13 @@ import {
   WorkflowArtifact,
   WorkflowArtifactDownload,
 } from "./github";
-import { Octokit } from "@octokit/rest";
 import { Context } from "@actions/github/lib/context";
 import { RestEndpointMethodTypes } from "@octokit/plugin-rest-endpoint-methods";
-import axios from "axios";
 import * as fs from "fs";
 import * as path from "path";
 import { mock, mockDeep } from "jest-mock-extended";
-
-jest.mock("axios");
+import fetchMock from "jest-fetch-mock";
+import { GitHub } from "@actions/github/lib/utils";
 
 type ListWorkflowRunArtifactsResponse =
   RestEndpointMethodTypes["actions"]["listWorkflowRunArtifacts"]["response"];
@@ -20,12 +18,12 @@ type DownloadArtifactResponse =
 
 describe("listWorkflowRunArtifacts", () => {
   let mockContext: Context;
-  let mockOctokit: Octokit;
+  let mockOctokit: InstanceType<typeof GitHub>;
   let subject: WorkflowArtifactDownload;
 
   beforeAll(async () => {
     mockContext = mockDeep<Context>();
-    mockOctokit = mockDeep<Octokit>();
+    mockOctokit = mockDeep<InstanceType<typeof GitHub>>();
     const mockListWorkflowRunArtifacts = mockOctokit.rest.actions
       .listWorkflowRunArtifacts as jest.MockedFunction<
       typeof mockOctokit.rest.actions.listWorkflowRunArtifacts
@@ -57,13 +55,11 @@ describe("listWorkflowRunArtifacts", () => {
       "{lint-and-test}{run tests}.zip",
     );
     const zipFile = fs.readFileSync(filePath);
-    (axios as jest.MockedFunction<typeof axios>).mockResolvedValue({
-      data: zipFile,
-      status: 200,
-      headers: {},
-      statusText: "OK",
-      config: {},
-    });
+    fetchMock.enableMocks();
+    fetchMock.mockResponseOnce(() =>
+      Promise.resolve({ body: zipFile as unknown as string }),
+    );
+
     const lookup = await listWorkflowRunArtifacts(mockContext, mockOctokit, 1);
     const response = lookup("lint-and-test", "run tests");
     if (!response) {

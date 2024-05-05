@@ -27,11 +27,10 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
 };
 Object.defineProperty(exports, "__esModule", { value: true });
 const github_1 = require("./github");
-const axios_1 = __importDefault(require("axios"));
 const fs = __importStar(require("fs"));
 const path = __importStar(require("path"));
 const jest_mock_extended_1 = require("jest-mock-extended");
-jest.mock("axios");
+const jest_fetch_mock_1 = __importDefault(require("jest-fetch-mock"));
 describe("listWorkflowRunArtifacts", () => {
     let mockContext;
     let mockOctokit;
@@ -57,13 +56,8 @@ describe("listWorkflowRunArtifacts", () => {
         mockDownloadArtifact.mockResolvedValue((0, jest_mock_extended_1.mock)({ url: "localhost" }));
         const filePath = path.join(__dirname, "__assets__", "{lint-and-test}{run tests}.zip");
         const zipFile = fs.readFileSync(filePath);
-        axios_1.default.mockResolvedValue({
-            data: zipFile,
-            status: 200,
-            headers: {},
-            statusText: "OK",
-            config: {},
-        });
+        jest_fetch_mock_1.default.enableMocks();
+        jest_fetch_mock_1.default.mockResponseOnce(() => Promise.resolve({ body: zipFile }));
         const lookup = await (0, github_1.listWorkflowRunArtifacts)(mockContext, mockOctokit, 1);
         const response = lookup("lint-and-test", "run tests");
         if (!response) {
