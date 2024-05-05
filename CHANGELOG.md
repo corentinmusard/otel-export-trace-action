@@ -7,7 +7,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
-### Changed
+## [1.9.1] - 2024-05-05
+
+### Fixed
 
 - Update dependencies
 - Update dev dependencies
@@ -19,5 +21,6 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Support for `https` endpoints (proto over http).
 - Update to node 20.x
 
-[unreleased]: https://github.com/corentinmusard/otel-cicd-action/compare/v1.9.0...HEAD
+[unreleased]: https://github.com/corentinmusard/otel-cicd-action/compare/v1.9.1...HEAD
+[1.9.1]: https://github.com/olivierlacan/keep-a-changelog/compare/v1.9.0...v1.9.1
 [1.9.0]: https://github.com/corentinmusard/otel-cicd-action/releases/tag/v1.9.0
