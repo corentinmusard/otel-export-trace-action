@@ -29,11 +29,11 @@
     "@actions/exec": "^1.1.1",
     "@actions/github": "^6.0.0",
     "@opentelemetry/api": "^1.1.0",
-    "@opentelemetry/exporter-trace-otlp-grpc": "^0.27.0",
-    "@opentelemetry/exporter-trace-otlp-proto": "^0.27.0",
-    "@opentelemetry/resources": "^1.1.0",
-    "@opentelemetry/sdk-trace-base": "^1.1.0",
-    "@opentelemetry/semantic-conventions": "^1.1.0",
+    "@opentelemetry/exporter-trace-otlp-grpc": "^0.28.0",
+    "@opentelemetry/exporter-trace-otlp-proto": "^0.28.0",
+    "@opentelemetry/resources": "^1.1.1",
+    "@opentelemetry/sdk-trace-base": "^1.1.1",
+    "@opentelemetry/semantic-conventions": "^1.1.1",
     "jszip": "^3.10.1"
   },
   "devDependencies": {
