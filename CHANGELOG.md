@@ -7,6 +7,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+
+- feat: update otel dependencies to latest
+
 ## [1.9.1] - 2024-05-09
 
 ### Fixed

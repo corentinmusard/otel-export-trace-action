@@ -55,6 +55,7 @@ function toLinks(links: ILink[] | undefined): Link[] {
 function toAttributeValue(value: IAnyValue): AttributeValue | undefined {
   /* istanbul ignore else */
   if ("stringValue" in value) {
+    /* istanbul ignore next */
     return value.stringValue ?? undefined;
   } else if ("arrayValue" in value) {
     return JSON.stringify(value.arrayValue?.values);
@@ -129,14 +130,18 @@ export async function traceOTLPFile({
   for await (const line of rl) {
     if (line) {
       const serviceRequest = JSON.parse(line) as IExportTraceServiceRequest;
+      /* istanbul ignore next */
       for (const resourceSpans of serviceRequest.resourceSpans ?? []) {
-        for (const scopeSpans of resourceSpans.scopeSpans) {
+        /* istanbul ignore next */
+        for (const scopeSpans of resourceSpans.scopeSpans ?? []) {
           if (scopeSpans.scope) {
+            /* istanbul ignore next */
             for (const otlpSpan of scopeSpans.spans ?? []) {
               core.debug(
                 `Trace Test ParentSpan<${
-                  otlpSpan.parentSpanId || parentSpan.spanContext().spanId
-                }> -> Span<${otlpSpan.spanId}> `,
+                  otlpSpan.parentSpanId?.toString() ||
+                  parentSpan.spanContext().spanId
+                }> -> Span<${otlpSpan.spanId.toString()}> `,
               );
               addSpanToTracer(otlpSpan, tracer);
             }

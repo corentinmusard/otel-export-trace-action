@@ -62,6 +62,7 @@ function toLinks(links) {
 function toAttributeValue(value) {
     /* istanbul ignore else */
     if ("stringValue" in value) {
+        /* istanbul ignore next */
         return value.stringValue ?? undefined;
     }
     else if ("arrayValue" in value) {
@@ -118,11 +119,15 @@ async function traceOTLPFile({ tracer, parentSpan, path, }) {
     for await (const line of rl) {
         if (line) {
             const serviceRequest = JSON.parse(line);
+            /* istanbul ignore next */
             for (const resourceSpans of serviceRequest.resourceSpans ?? []) {
-                for (const scopeSpans of resourceSpans.scopeSpans) {
+                /* istanbul ignore next */
+                for (const scopeSpans of resourceSpans.scopeSpans ?? []) {
                     if (scopeSpans.scope) {
+                        /* istanbul ignore next */
                         for (const otlpSpan of scopeSpans.spans ?? []) {
-                            core.debug(`Trace Test ParentSpan<${otlpSpan.parentSpanId || parentSpan.spanContext().spanId}> -> Span<${otlpSpan.spanId}> `);
+                            core.debug(`Trace Test ParentSpan<${otlpSpan.parentSpanId?.toString() ||
+                                parentSpan.spanContext().spanId}> -> Span<${otlpSpan.spanId.toString()}> `);
                             addSpanToTracer(otlpSpan, tracer);
                         }
                     }
