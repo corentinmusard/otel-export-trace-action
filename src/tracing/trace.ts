@@ -7,7 +7,12 @@ import {
 } from "@opentelemetry/sdk-trace-base";
 import { OTLPTraceExporter } from "@opentelemetry/exporter-trace-otlp-grpc";
 import { OTLPTraceExporter as ProtoOTLPTraceExporter } from "@opentelemetry/exporter-trace-otlp-proto";
-import { SemanticResourceAttributes } from "@opentelemetry/semantic-conventions";
+import {
+  SEMRESATTRS_SERVICE_INSTANCE_ID,
+  SEMRESATTRS_SERVICE_NAME,
+  SEMRESATTRS_SERVICE_NAMESPACE,
+  SEMRESATTRS_SERVICE_VERSION,
+} from "@opentelemetry/semantic-conventions";
 import { WorkflowRunJobs } from "../github";
 import { Resource } from "@opentelemetry/resources";
 
@@ -55,10 +60,10 @@ export function createTracerProvider(
 
   const provider = new BasicTracerProvider({
     resource: new Resource({
-      [SemanticResourceAttributes.SERVICE_NAME]: serviceName,
-      [SemanticResourceAttributes.SERVICE_INSTANCE_ID]: serviceInstanceId,
-      [SemanticResourceAttributes.SERVICE_NAMESPACE]: serviceNamespace,
-      [SemanticResourceAttributes.SERVICE_VERSION]: serviceVersion,
+      [SEMRESATTRS_SERVICE_NAME]: serviceName,
+      [SEMRESATTRS_SERVICE_INSTANCE_ID]: serviceInstanceId,
+      [SEMRESATTRS_SERVICE_NAMESPACE]: serviceNamespace,
+      [SEMRESATTRS_SERVICE_VERSION]: serviceVersion,
     }),
   });
 

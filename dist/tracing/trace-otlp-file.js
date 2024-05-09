@@ -24,59 +24,57 @@ var __importStar = (this && this.__importStar) || function (mod) {
 };
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.traceOTLPFile = void 0;
-const sdk_trace_base_1 = require("@opentelemetry/sdk-trace-base");
-const core_1 = require("@opentelemetry/core");
-const exporter_trace_otlp_http_1 = require("@opentelemetry/exporter-trace-otlp-http");
 const core = __importStar(require("@actions/core"));
 const fs = __importStar(require("fs"));
 const readline = __importStar(require("readline"));
-const api = __importStar(require("@opentelemetry/api"));
+const api_1 = require("@opentelemetry/api");
+const otlp_transformer_1 = require("@opentelemetry/otlp-transformer");
 /* istanbul ignore next */
 function toSpanKind(spanKind) {
     switch (spanKind) {
         /* istanbul ignore next */
-        case exporter_trace_otlp_http_1.otlpTypes.opentelemetryProto.trace.v1.Span.SpanKind.SPAN_KIND_CLIENT:
-            return api.SpanKind.CLIENT;
+        case otlp_transformer_1.ESpanKind.SPAN_KIND_CLIENT:
+            return api_1.SpanKind.CLIENT;
         /* istanbul ignore next */
-        case exporter_trace_otlp_http_1.otlpTypes.opentelemetryProto.trace.v1.Span.SpanKind.SPAN_KIND_CONSUMER:
-            return api.SpanKind.CONSUMER;
-        case exporter_trace_otlp_http_1.otlpTypes.opentelemetryProto.trace.v1.Span.SpanKind.SPAN_KIND_INTERNAL:
-            return api.SpanKind.INTERNAL;
+        case otlp_transformer_1.ESpanKind.SPAN_KIND_CONSUMER:
+            return api_1.SpanKind.CONSUMER;
+        case otlp_transformer_1.ESpanKind.SPAN_KIND_INTERNAL:
+            return api_1.SpanKind.INTERNAL;
         /* istanbul ignore next */
-        case exporter_trace_otlp_http_1.otlpTypes.opentelemetryProto.trace.v1.Span.SpanKind.SPAN_KIND_PRODUCER:
-            return api.SpanKind.PRODUCER;
+        case otlp_transformer_1.ESpanKind.SPAN_KIND_PRODUCER:
+            return api_1.SpanKind.PRODUCER;
         /* istanbul ignore next */
-        case exporter_trace_otlp_http_1.otlpTypes.opentelemetryProto.trace.v1.Span.SpanKind.SPAN_KIND_SERVER:
-            return api.SpanKind.SERVER;
+        case otlp_transformer_1.ESpanKind.SPAN_KIND_SERVER:
+            return api_1.SpanKind.SERVER;
         /* istanbul ignore next */
         default:
-            return api.SpanKind.INTERNAL;
+            return api_1.SpanKind.INTERNAL;
     }
 }
 function toLinks(links) {
     /* istanbul ignore if */
     if (links === undefined) {
-        return undefined;
+        return [];
     }
     // TODO implement Links
-    return undefined;
+    return [];
 }
 function toAttributeValue(value) {
     /* istanbul ignore else */
     if ("stringValue" in value) {
-        return value.stringValue;
+        return value.stringValue ?? undefined;
     }
     else if ("arrayValue" in value) {
         return JSON.stringify(value.arrayValue?.values);
     }
     else if ("boolValue" in value) {
-        return value.boolValue;
+        return value.boolValue ?? undefined;
     }
     else if ("doubleValue" in value) {
-        return value.doubleValue;
+        return value.doubleValue ?? undefined;
     }
     else if ("intValue" in value) {
-        return value.intValue;
+        return value.intValue ?? undefined;
     }
     else if ("kvlistValue" in value) {
         return JSON.stringify(value.kvlistValue?.values.reduce((result, { key, value }) => {
@@ -96,13 +94,20 @@ function toAttributes(attributes) {
     }, {});
     return rv;
 }
-function toSpan({ otlpSpan, tracer, parentSpan }) {
-    return new sdk_trace_base_1.Span(tracer, api.context.active(), otlpSpan.name, {
-        traceId: parentSpan.spanContext().traceId,
-        spanId: otlpSpan.spanId,
-        traceFlags: parentSpan.spanContext().traceFlags,
-        traceState: new core_1.TraceState(otlpSpan.traceState),
-    }, toSpanKind(otlpSpan.kind), otlpSpan.parentSpanId || parentSpan.spanContext().spanId, toLinks(otlpSpan.links), new Date(otlpSpan.startTimeUnixNano / 1000000));
+function addSpanToTracer(otlpSpan, tracer) {
+    const span = tracer.startSpan(otlpSpan.name, {
+        kind: toSpanKind(otlpSpan.kind),
+        attributes: toAttributes(otlpSpan.attributes),
+        links: toLinks(otlpSpan.links),
+        startTime: new Date(otlpSpan.startTimeUnixNano / 1000000),
+    }, api_1.context.active());
+    if (otlpSpan.status) {
+        span.setStatus({
+            code: otlpSpan.status.code,
+            message: otlpSpan.status.message ?? "",
+        });
+    }
+    span.end(new Date(otlpSpan.endTimeUnixNano / 1000000));
 }
 async function traceOTLPFile({ tracer, parentSpan, path, }) {
     const fileStream = fs.createReadStream(path);
@@ -113,24 +118,12 @@ async function traceOTLPFile({ tracer, parentSpan, path, }) {
     for await (const line of rl) {
         if (line) {
             const serviceRequest = JSON.parse(line);
-            for (const resourceSpans of serviceRequest.resourceSpans) {
-                for (const libSpans of resourceSpans.instrumentationLibrarySpans) {
-                    if (libSpans.instrumentationLibrary) {
-                        for (const otlpSpan of libSpans.spans) {
+            for (const resourceSpans of serviceRequest.resourceSpans ?? []) {
+                for (const scopeSpans of resourceSpans.scopeSpans) {
+                    if (scopeSpans.scope) {
+                        for (const otlpSpan of scopeSpans.spans ?? []) {
                             core.debug(`Trace Test ParentSpan<${otlpSpan.parentSpanId || parentSpan.spanContext().spanId}> -> Span<${otlpSpan.spanId}> `);
-                            const span = toSpan({
-                                otlpSpan,
-                                tracer,
-                                parentSpan,
-                            });
-                            const attributes = toAttributes(otlpSpan.attributes);
-                            if (attributes) {
-                                span.setAttributes(attributes);
-                            }
-                            if (otlpSpan.status) {
-                                span.setStatus(otlpSpan.status);
-                            }
-                            span.end(new Date(otlpSpan.endTimeUnixNano / 1000000));
+                            addSpanToTracer(otlpSpan, tracer);
                         }
                     }
                 }

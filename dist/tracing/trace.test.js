@@ -27,20 +27,20 @@ describe("createTracerProvider", () => {
     describe("resource attributes", () => {
         it("has service.name resource as workflow name", () => {
             subject = (0, trace_1.createTracerProvider)("localhost", "test=foo", mockWorkflowRunJobs);
-            expect(subject.resource.attributes[semantic_conventions_1.SemanticResourceAttributes.SERVICE_NAME]).toEqual(mockWorkflowRunJobs.workflowRun.name);
+            expect(subject.resource.attributes[semantic_conventions_1.SEMRESATTRS_SERVICE_NAME]).toEqual(mockWorkflowRunJobs.workflowRun.name);
         });
         it("has service.name resource as workflow id", () => {
             mockWorkflowRunJobs.workflowRun.name = null;
             subject = (0, trace_1.createTracerProvider)("localhost", "test=foo", mockWorkflowRunJobs);
-            expect(subject.resource.attributes[semantic_conventions_1.SemanticResourceAttributes.SERVICE_NAME]).toEqual(`${mockWorkflowRunJobs.workflowRun.id}`);
+            expect(subject.resource.attributes[semantic_conventions_1.SEMRESATTRS_SERVICE_NAME]).toEqual(`${mockWorkflowRunJobs.workflowRun.id}`);
         });
         it("has service.name resource as a custom parameter", () => {
             subject = (0, trace_1.createTracerProvider)("localhost", "test=foo", mockWorkflowRunJobs, "custom-service-name");
-            expect(subject.resource.attributes[semantic_conventions_1.SemanticResourceAttributes.SERVICE_NAME]).toEqual("custom-service-name");
+            expect(subject.resource.attributes[semantic_conventions_1.SEMRESATTRS_SERVICE_NAME]).toEqual("custom-service-name");
         });
         it("has service.instance.id resource", () => {
             subject = (0, trace_1.createTracerProvider)("localhost", "test=foo", mockWorkflowRunJobs);
-            expect(subject.resource.attributes[semantic_conventions_1.SemanticResourceAttributes.SERVICE_INSTANCE_ID]).toEqual([
+            expect(subject.resource.attributes[semantic_conventions_1.SEMRESATTRS_SERVICE_INSTANCE_ID]).toEqual([
                 mockWorkflowRunJobs.workflowRun.repository.full_name,
                 mockWorkflowRunJobs.workflowRun.workflow_id,
                 mockWorkflowRunJobs.workflowRun.id,
@@ -49,7 +49,7 @@ describe("createTracerProvider", () => {
         });
         it("has service.namespace resource", () => {
             subject = (0, trace_1.createTracerProvider)("localhost", "test=foo", mockWorkflowRunJobs);
-            expect(subject.resource.attributes[semantic_conventions_1.SemanticResourceAttributes.SERVICE_NAMESPACE]).toEqual(mockWorkflowRunJobs.workflowRun.repository.full_name);
+            expect(subject.resource.attributes[semantic_conventions_1.SEMRESATTRS_SERVICE_NAMESPACE]).toEqual(mockWorkflowRunJobs.workflowRun.repository.full_name);
         });
     });
     it("has active span processor", () => {

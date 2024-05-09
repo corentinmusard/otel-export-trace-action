@@ -8,7 +8,7 @@ import {
   Span,
 } from "@opentelemetry/sdk-trace-base";
 import { Resource } from "@opentelemetry/resources";
-import { SemanticResourceAttributes } from "@opentelemetry/semantic-conventions";
+import { SEMRESATTRS_SERVICE_NAME } from "@opentelemetry/semantic-conventions";
 
 import { traceOTLPFile } from "./trace-otlp-file";
 
@@ -21,7 +21,7 @@ describe("traceJunitArtifact", () => {
     memoryExporter = new InMemorySpanExporter();
     tracerProvider = new BasicTracerProvider({
       resource: new Resource({
-        [SemanticResourceAttributes.SERVICE_NAME]: "traceTestReportArtifact",
+        [SEMRESATTRS_SERVICE_NAME]: "traceTestReportArtifact",
       }),
     });
     tracerProvider.addSpanProcessor(new SimpleSpanProcessor(memoryExporter));

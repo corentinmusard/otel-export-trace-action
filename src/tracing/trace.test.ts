@@ -1,6 +1,10 @@
 import { createTracerProvider, stringToHeader } from "./trace";
 import { WorkflowRunJobs } from "../github";
-import { SemanticResourceAttributes } from "@opentelemetry/semantic-conventions";
+import {
+  SEMRESATTRS_SERVICE_INSTANCE_ID,
+  SEMRESATTRS_SERVICE_NAME,
+  SEMRESATTRS_SERVICE_NAMESPACE,
+} from "@opentelemetry/semantic-conventions";
 import { BasicTracerProvider } from "@opentelemetry/sdk-trace-base";
 import { mock } from "jest-mock-extended";
 
@@ -34,9 +38,9 @@ describe("createTracerProvider", () => {
         "test=foo",
         mockWorkflowRunJobs,
       );
-      expect(
-        subject.resource.attributes[SemanticResourceAttributes.SERVICE_NAME],
-      ).toEqual(mockWorkflowRunJobs.workflowRun.name);
+      expect(subject.resource.attributes[SEMRESATTRS_SERVICE_NAME]).toEqual(
+        mockWorkflowRunJobs.workflowRun.name,
+      );
     });
 
     it("has service.name resource as workflow id", () => {
@@ -46,9 +50,9 @@ describe("createTracerProvider", () => {
         "test=foo",
         mockWorkflowRunJobs,
       );
-      expect(
-        subject.resource.attributes[SemanticResourceAttributes.SERVICE_NAME],
-      ).toEqual(`${mockWorkflowRunJobs.workflowRun.id}`);
+      expect(subject.resource.attributes[SEMRESATTRS_SERVICE_NAME]).toEqual(
+        `${mockWorkflowRunJobs.workflowRun.id}`,
+      );
     });
 
     it("has service.name resource as a custom parameter", () => {
@@ -58,9 +62,9 @@ describe("createTracerProvider", () => {
         mockWorkflowRunJobs,
         "custom-service-name",
       );
-      expect(
-        subject.resource.attributes[SemanticResourceAttributes.SERVICE_NAME],
-      ).toEqual("custom-service-name");
+      expect(subject.resource.attributes[SEMRESATTRS_SERVICE_NAME]).toEqual(
+        "custom-service-name",
+      );
     });
 
     it("has service.instance.id resource", () => {
@@ -70,9 +74,7 @@ describe("createTracerProvider", () => {
         mockWorkflowRunJobs,
       );
       expect(
-        subject.resource.attributes[
-          SemanticResourceAttributes.SERVICE_INSTANCE_ID
-        ],
+        subject.resource.attributes[SEMRESATTRS_SERVICE_INSTANCE_ID],
       ).toEqual(
         [
           mockWorkflowRunJobs.workflowRun.repository.full_name,
@@ -90,9 +92,7 @@ describe("createTracerProvider", () => {
         mockWorkflowRunJobs,
       );
       expect(
-        subject.resource.attributes[
-          SemanticResourceAttributes.SERVICE_NAMESPACE
-        ],
+        subject.resource.attributes[SEMRESATTRS_SERVICE_NAMESPACE],
       ).toEqual(mockWorkflowRunJobs.workflowRun.repository.full_name);
     });
   });

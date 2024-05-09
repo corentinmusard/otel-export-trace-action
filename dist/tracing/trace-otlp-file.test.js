@@ -37,7 +37,7 @@ describe("traceJunitArtifact", () => {
         memoryExporter = new sdk_trace_base_1.InMemorySpanExporter();
         tracerProvider = new sdk_trace_base_1.BasicTracerProvider({
             resource: new resources_1.Resource({
-                [semantic_conventions_1.SemanticResourceAttributes.SERVICE_NAME]: "traceTestReportArtifact",
+                [semantic_conventions_1.SEMRESATTRS_SERVICE_NAME]: "traceTestReportArtifact",
             }),
         });
         tracerProvider.addSpanProcessor(new sdk_trace_base_1.SimpleSpanProcessor(memoryExporter));

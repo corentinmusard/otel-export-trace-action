@@ -63,10 +63,10 @@ function createTracerProvider(otlpEndpoint, otlpHeaders, workflowRunJobs, otelSe
     const serviceVersion = workflowRunJobs.workflowRun.head_sha;
     const provider = new sdk_trace_base_1.BasicTracerProvider({
         resource: new resources_1.Resource({
-            [semantic_conventions_1.SemanticResourceAttributes.SERVICE_NAME]: serviceName,
-            [semantic_conventions_1.SemanticResourceAttributes.SERVICE_INSTANCE_ID]: serviceInstanceId,
-            [semantic_conventions_1.SemanticResourceAttributes.SERVICE_NAMESPACE]: serviceNamespace,
-            [semantic_conventions_1.SemanticResourceAttributes.SERVICE_VERSION]: serviceVersion,
+            [semantic_conventions_1.SEMRESATTRS_SERVICE_NAME]: serviceName,
+            [semantic_conventions_1.SEMRESATTRS_SERVICE_INSTANCE_ID]: serviceInstanceId,
+            [semantic_conventions_1.SEMRESATTRS_SERVICE_NAMESPACE]: serviceNamespace,
+            [semantic_conventions_1.SEMRESATTRS_SERVICE_VERSION]: serviceVersion,
         }),
     });
     let exporter = new sdk_trace_base_1.ConsoleSpanExporter();
