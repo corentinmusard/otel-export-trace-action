@@ -60,6 +60,8 @@ jobs:
       - name: Export workflow
         uses: ./
         with:
-          otlpEndpoint: ${{ secrets.OTLP_ENDPOINT }}
-          otlpHeaders: ${{ secrets.OTLP_HEADERS }}
+          otlpEndpoint: "test"
+          otlpHeaders: "test"
           githubToken: ${{ secrets.GITHUB_TOKEN }}
+        env:
+          OTEL_CONSOLE_ONLY: "true"
