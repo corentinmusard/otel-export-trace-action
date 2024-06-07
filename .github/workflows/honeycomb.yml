@@ -8,7 +8,7 @@ on:
     types: [completed]
 
 jobs:
-  otel-export-newrelic:
+  otel-export-honeycomb:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
