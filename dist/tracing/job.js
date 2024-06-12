@@ -26,7 +26,9 @@ Object.defineProperty(exports, "__esModule", { value: true });
 exports.traceWorkflowRunJobs = void 0;
 const api_1 = require("@opentelemetry/api");
 const core = __importStar(require("@actions/core"));
+const github_1 = require("../github");
 const step_1 = require("./step");
+const github_2 = require("@actions/github");
 async function traceWorkflowRunJobs({ provider, workflowRunJobs, }) {
     const tracer = provider.getTracer("otel-cicd-action");
     const startTime = new Date(workflowRunJobs.workflowRun.run_started_at ||
@@ -40,6 +42,11 @@ async function traceWorkflowRunJobs({ provider, workflowRunJobs, }) {
         headRef = workflowRunJobs.workflowRun.pull_requests[0].head?.ref;
         baseRef = workflowRunJobs.workflowRun.pull_requests[0].base?.ref;
         baseSha = workflowRunJobs.workflowRun.pull_requests[0].base?.sha;
+        const pr_labels = [];
+        for (const pr of workflowRunJobs.workflowRun.pull_requests) {
+            const labels = await (0, github_1.GetPRLabels)((0, github_2.getOctokit)(core.getInput("githubToken")), github_2.context.repo.owner, github_2.context.repo.repo, pr.number);
+            pr_labels.push(labels);
+        }
         pull_requests = workflowRunJobs.workflowRun.pull_requests.reduce((result, pr, idx) => {
             const prefix = `github.pull_requests.${idx}`;
             return {
@@ -47,6 +54,7 @@ async function traceWorkflowRunJobs({ provider, workflowRunJobs, }) {
                 [`${prefix}.id`]: pr.id,
                 [`${prefix}.url`]: pr.url,
                 [`${prefix}.number`]: pr.number,
+                [`${prefix}.labels`]: pr_labels[idx],
                 [`${prefix}.head.sha`]: pr.head.sha,
                 [`${prefix}.head.ref`]: pr.head.ref,
                 [`${prefix}.head.repo.id`]: pr.head.repo.id,

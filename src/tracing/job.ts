@@ -14,9 +14,12 @@ import {
   WorkflowRunJob,
   WorkflowRunJobStep,
   WorkflowArtifactLookup,
+  GetPRLabels,
 } from "../github";
 
 import { traceWorkflowRunStep } from "./step";
+
+import { context, getOctokit } from "@actions/github";
 
 export type TraceWorkflowRunJobsParams = {
   provider: BasicTracerProvider;
@@ -44,14 +47,28 @@ export async function traceWorkflowRunJobs({
     headRef = workflowRunJobs.workflowRun.pull_requests[0].head?.ref;
     baseRef = workflowRunJobs.workflowRun.pull_requests[0].base?.ref;
     baseSha = workflowRunJobs.workflowRun.pull_requests[0].base?.sha;
+
+    const pr_labels: string[][] = [];
+    for (const pr of workflowRunJobs.workflowRun.pull_requests) {
+      const labels = await GetPRLabels(
+        getOctokit(core.getInput("githubToken")),
+        context.repo.owner,
+        context.repo.repo,
+        pr.number,
+      );
+      pr_labels.push(labels);
+    }
+
     pull_requests = workflowRunJobs.workflowRun.pull_requests.reduce(
       (result, pr, idx) => {
         const prefix = `github.pull_requests.${idx}`;
+
         return {
           ...result,
           [`${prefix}.id`]: pr.id,
           [`${prefix}.url`]: pr.url,
           [`${prefix}.number`]: pr.number,
+          [`${prefix}.labels`]: pr_labels[idx],
           [`${prefix}.head.sha`]: pr.head.sha,
           [`${prefix}.head.ref`]: pr.head.ref,
           [`${prefix}.head.repo.id`]: pr.head.repo.id,

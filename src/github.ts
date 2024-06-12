@@ -226,3 +226,17 @@ export async function getWorkflowRunJobs(
   };
   return workflowRunJobs;
 }
+
+export async function GetPRLabels(
+  octokit: OctoKit,
+  owner: string,
+  repo: string,
+  prNumber: number,
+) {
+  const labelRequest = await octokit.rest.issues.listLabelsOnIssue({
+    owner,
+    repo,
+    issue_number: prNumber,
+  });
+  return labelRequest.data.map((l) => l.name);
+}
